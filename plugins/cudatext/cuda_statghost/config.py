@@ -1,4 +1,4 @@
-# Plugin Config — tree (left) + page (right) + OK/Cancel footer.
+# Plugin Config — tree (left) + page (right) + Apply/OK/Cancel footer.
 # dlg_proc, not dlg_custom: room to grow without stacking / overlapping.
 # Nav width: longest caption + 20% slack + gutter (not a fixed 150px).
 # Button callbacks are `module=…;cmd=…` strings — gtk2 bound methods never
@@ -85,12 +85,18 @@ _SHOW_KEYS = tuple(k for k, _c in _SHOW_DEFS)
 
 _PIPE_ITEMS = ('|>  (native R 4.1+)', '%>%  (magrittr)')
 _ICONS_FG_ITEMS = (
-    'auto  (contrast vs theme)',
-    'light  (light icons)',
-    'dark  (dark icons)',
+    'auto  (palette vs theme)',
+    'white  (closed white)',
+    'graphite',
+    'gray  (mid)',
     'theme  (ButtonFont raw)',
 )
-_ICONS_FG_KEYS = ('auto', 'light', 'dark', 'theme')
+_ICONS_FG_KEYS = ('auto', 'light', 'dark', 'gray', 'theme')
+_GRID_LABEL_ITEMS = (
+    'below  (caption under icon)',
+    'icon  (icon only, hint on hover)',
+)
+_GRID_LABEL_KEYS = chrome_show.GRID_LABELS
 
 _FALLBACK_ENCS = (
     'utf-8',
@@ -116,6 +122,8 @@ _h = 0
 _h_tree = 0
 _items = []
 _saved = False
+_applied = False
+_snapshot = None
 _encs = []
 
 
@@ -183,6 +191,14 @@ def _icons_fg_index():
     key = prefs.get_icons_fg()
     try:
         return _ICONS_FG_KEYS.index(key)
+    except ValueError:
+        return 0
+
+
+def _grid_label_index():
+    key = prefs.get_grid_label()
+    try:
+        return _GRID_LABEL_KEYS.index(key)
     except ValueError:
         return 0
 
@@ -271,9 +287,51 @@ def _read_int(h, name, fallback=0):
         return fallback
 
 
+def _snapshot_prefs():
+    """Chrome + send/host values as they were when Config opened."""
+    return {
+        'exe': prefs.get_exe(),
+        'collapse': prefs.get_collapse(),
+        'keep_focus': prefs.get_keep_focus(),
+        'source_echo': prefs.get_source_echo(),
+        'source_encoding': prefs.get_source_encoding(),
+        'pipe': prefs.get_pipe_token(),
+        'icons_fg': prefs.get_icons_fg(),
+        'grid_label': prefs.get_grid_label(),
+        'show': prefs.get_chrome_show(),
+    }
+
+
+def _restore_prefs(snap):
+    if not snap:
+        return
+    prefs.set_exe(snap.get('exe') or '')
+    prefs.set_collapse(snap.get('collapse'))
+    prefs.set_keep_focus(snap.get('keep_focus'))
+    prefs.set_source_echo(snap.get('source_echo'))
+    prefs.set_source_encoding(snap.get('source_encoding'))
+    pipe = snap.get('pipe') or '|>'
+    prefs.set_pipe_token('magrittr' if pipe == '%>%' else 'native')
+    prefs.set_icons_fg(snap.get('icons_fg'))
+    prefs.set_grid_label(snap.get('grid_label'))
+    prefs.set_chrome_show(snap.get('show'))
+
+
+def _rebuild_live():
+    """Apply chrome now — Config stays open (modal)."""
+    try:
+        from . import chrome
+    except ImportError:
+        import chrome
+    try:
+        chrome.get().rebuild_chrome()
+    except Exception:
+        pass
+
+
 def on_dlg(id_dlg, info):
     """String-callback hub (`Command.config_dlg`)."""
-    global _saved
+    global _saved, _applied
     if id_dlg != _h or not _h:
         return
     kind = (info or '').strip().lower()
@@ -318,6 +376,12 @@ def on_dlg(id_dlg, info):
         if picked:
             _set(_h, 'exe', val=picked)
         return
+    if kind == 'apply':
+        if not _commit(id_dlg):
+            return
+        _applied = True
+        _rebuild_live()
+        return
     if kind == 'ok':
         if not _commit(id_dlg):
             return
@@ -325,6 +389,9 @@ def on_dlg(id_dlg, info):
         dlg_proc(id_dlg, DLG_HIDE)
         return
     if kind == 'cancel':
+        if _applied:
+            _restore_prefs(_snapshot)
+            _rebuild_live()
         _saved = False
         dlg_proc(id_dlg, DLG_HIDE)
 
@@ -351,6 +418,9 @@ def _commit(h):
     icons_idx = _read_int(h, 'icons_fg', 0)
     if icons_idx < 0 or icons_idx >= len(_ICONS_FG_KEYS):
         icons_idx = 0
+    grid_idx = _read_int(h, 'grid_label', 0)
+    if grid_idx < 0 or grid_idx >= len(_GRID_LABEL_KEYS):
+        grid_idx = 0
     collapse = _as_bool(_get(h, 'collapse').get('val'))
     keep_focus = _as_bool(_get(h, 'keep_focus').get('val'))
     src_echo = _as_bool(_get(h, 'src_echo').get('val'))
@@ -370,12 +440,15 @@ def _commit(h):
     prefs.set_source_encoding(_encs[enc_idx])
     prefs.set_pipe_token('magrittr' if pipe_idx == 1 else 'native')
     prefs.set_icons_fg(_ICONS_FG_KEYS[icons_idx])
+    prefs.set_grid_label(_GRID_LABEL_KEYS[grid_idx])
     prefs.set_chrome_show(chosen)
     msg_status(
         PLUGIN + ': settings saved — buttons '
         + ','.join(prefs.get_chrome_show())
         + ', icons FG '
         + prefs.get_icons_fg()
+        + ', grid '
+        + prefs.get_grid_label()
     )
     return True
 
@@ -444,12 +517,20 @@ def _fill_send(h, collapse, keep_focus, src_echo, enc_idx, pipe_idx):
     })
 
 
-def _fill_chrome(h, icons_idx, show_on):
+def _fill_chrome(h, icons_idx, grid_idx, show_on):
     list_caps = '\t'.join(cap for _k, cap in _SHOW_DEFS)
     stretch = {'a_r': ('', ']'), 'sp_r': 12}
     _add(h, 'panel', {
         'name': 'chrome_head', 'p': 'page_chrome',
-        'align': ALIGN_TOP, 'h': 84,
+        'align': ALIGN_TOP, 'h': 40,
+    })
+    _add(h, 'panel', {
+        'name': 'chrome_grid', 'p': 'page_chrome',
+        'align': ALIGN_TOP, 'h': 40,
+    })
+    _add(h, 'panel', {
+        'name': 'chrome_list_cap', 'p': 'page_chrome',
+        'align': ALIGN_TOP, 'h': 28,
     })
     _add(h, 'panel', {
         'name': 'chrome_foot', 'p': 'page_chrome',
@@ -458,18 +539,29 @@ def _fill_chrome(h, icons_idx, show_on):
     _add(h, 'label', {
         'name': 'icons_lbl', 'p': 'chrome_head',
         'cap': 'Toolbar / side icons FG',
-        'x': 12, 'y': 12, 'w': 200, 'h': 22,
+        'x': 12, 'y': 10, 'w': 200, 'h': 22,
     })
     _add(h, 'combo_ro', {
         'name': 'icons_fg', 'p': 'chrome_head',
         'items': '\t'.join(_ICONS_FG_ITEMS),
         'val': str(icons_idx),
-        'x': 220, 'y': 8, 'w': 160, 'h': 28, **stretch,
+        'x': 220, 'y': 6, 'w': 160, 'h': 28, **stretch,
     })
     _add(h, 'label', {
-        'name': 'list_lbl', 'p': 'chrome_head',
+        'name': 'grid_lbl', 'p': 'chrome_grid',
+        'cap': 'Side keypad labels',
+        'x': 12, 'y': 10, 'w': 200, 'h': 22,
+    })
+    _add(h, 'combo_ro', {
+        'name': 'grid_label', 'p': 'chrome_grid',
+        'items': '\t'.join(_GRID_LABEL_ITEMS),
+        'val': str(grid_idx),
+        'x': 220, 'y': 6, 'w': 160, 'h': 28, **stretch,
+    })
+    _add(h, 'label', {
+        'name': 'list_lbl', 'p': 'chrome_list_cap',
         'cap': 'Toolbar / side buttons (same nest tree)',
-        'x': 12, 'y': 48, 'w': 200, 'h': 22, **stretch,
+        'x': 12, 'y': 4, 'w': 200, 'h': 22, **stretch,
     })
     _add(h, 'checklistbox', {
         'name': 'chrome_list', 'p': 'page_chrome',
@@ -560,7 +652,7 @@ def _fill_host(h, path, det_cap):
 
 
 def show_config():
-    global _h, _h_tree, _items, _saved, _encs
+    global _h, _h_tree, _items, _saved, _applied, _snapshot, _encs
     path = prefs.get_exe() or host.find_exe(ignore_ini=True) or ''
     collapse = prefs.get_collapse()
     keep_focus = prefs.get_keep_focus()
@@ -570,10 +662,13 @@ def show_config():
     enc_idx = _enc_index(_encs, encoding)
     pipe_idx = _pipe_index()
     icons_idx = _icons_fg_index()
+    grid_idx = _grid_label_index()
     show_on = _show_dict_from_prefs()
     detected = host.find_exe(ignore_ini=True) or ''
     det_cap = detected if detected else '(not found)'
     _saved = False
+    _applied = False
+    _snapshot = _snapshot_prefs()
     _items = []
 
     h = dlg_proc(0, DLG_CREATE)
@@ -610,6 +705,15 @@ def show_config():
         'sp_r': 8,
         'on_change': _CB % 'ok',
     })
+    _add(h, 'button', {
+        'name': 'btn_apply', 'p': 'foot',
+        'cap': 'Apply',
+        'w': 96, 'h': 28, 'y': 10,
+        'a_l': None, 'a_t': None,
+        'a_r': ('btn_ok', '['), 'a_b': None,
+        'sp_r': 8,
+        'on_change': _CB % 'apply',
+    })
     _add(h, 'treeview', {
         'name': 'nav',
         'align': ALIGN_LEFT,
@@ -633,7 +737,7 @@ def show_config():
             'vis': (i == 0),
         })
     _fill_send(h, collapse, keep_focus, src_echo, enc_idx, pipe_idx)
-    _fill_chrome(h, icons_idx, show_on)
+    _fill_chrome(h, icons_idx, grid_idx, show_on)
     _fill_host(h, path, det_cap)
 
     tree_proc(_h_tree, TREE_PROP_SHOW_ROOT, text='0')
@@ -657,4 +761,5 @@ def show_config():
     _h = 0
     _h_tree = 0
     _items = []
+    _snapshot = None
     return bool(_saved)

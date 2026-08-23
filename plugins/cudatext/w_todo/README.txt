@@ -1,6 +1,6 @@
 w_todo — working docs (SAP / CPR for the CudaText host chrome)
 ===============================================================
-Updated: 2026-08-16 (lives under plugins/cudatext/ — host-specific)
+Updated: 2026-08-22 (lives under plugins/cudatext/ — host-specific)
 Reading preference: **Portuguese (w_pt/br)**. Always keep EN twins.
 
 Layout:
@@ -17,6 +17,12 @@ Numbering (elaboration order — same in every language pack):
   02_cpr_workbar.txt    2026-08-16  CPR WORKBAR (VP-WB-1 GO; WB-2 stash;
                                     WB-3 Insert; WB-4 Rnoweb RECORD;
                                     WB-5 R-control Inspect/Clear GO)
+  03_sap_chrome.txt     2026-08-22  SAP Chrome pattern (multi-editor;
+                                    one contract / three surfaces)
+  04_cpr_chrome.txt     2026-08-22  CPR CHROME (VP-CH-1..7; shared extract
+                                    RECORD until second host GO)
+
+Canonical EN (all hosts): `shared/CHROME.md`
 
 STATghost product packs (16/17 EDITOR-BRIDGE, D29) stay in the sibling
 repo `jcfaria/statghost` `w_todo/`. This companion folder owns **plugin

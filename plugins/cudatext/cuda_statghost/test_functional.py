@@ -30,6 +30,8 @@ EVAL_WAIT_S = 20.0
 
 
 def _clip_tool():
+    if sys.platform.startswith('win'):
+        return 'win32'
     if shutil.which('xclip'):
         return 'xclip'
     if shutil.which('wl-copy'):
@@ -40,6 +42,9 @@ def _clip_tool():
 
 
 def set_clip(text):
+    if sys.platform.startswith('win'):
+        import test_workbar as wb
+        return wb._set_clip(text)
     """Put UTF-8 on the X/Wayland clipboard. Never capture xclip pipes
     (it stays as clipboard owner and capture_output deadlocks)."""
     data = text if isinstance(text, str) else ''
@@ -112,6 +117,10 @@ def send_eval(code):
     cmd, body = protocol.parse_message(msg)
     if cmd != protocol.CMD_EVAL or body != code:
         return False, 'protocol roundtrip failed'
+    if sys.platform.startswith('win'):
+        import test_workbar as wb
+        wb._nudge_sg()
+        time.sleep(0.25)
     if not set_clip(msg):
         return False, 'clipboard set failed'
     return True, msg
@@ -126,12 +135,18 @@ class TestFunctionalLive(unittest.TestCase):
         cls.running = host.is_running()
         if not cls.tool:
             raise unittest.SkipTest('no xclip/wl-copy/xsel on PATH')
-        if not os.environ.get('DISPLAY') and cls.tool != 'wl-copy':
+        if (
+            cls.tool not in ('win32', 'wl-copy')
+            and not os.environ.get('DISPLAY')
+        ):
             raise unittest.SkipTest('DISPLAY unset (clipboard needs an X session)')
         if not cls.running:
             raise unittest.SkipTest(
                 'STATghost is not running — start it, Arm R, re-run'
             )
+        if sys.platform.startswith('win'):
+            import test_workbar as wb
+            wb._nudge_sg()
         if not set_clip(protocol.make_command(protocol.CMD_ARM)):
             raise unittest.SkipTest('could not put ARM on the clipboard')
         time.sleep(ARM_WAIT_S)
@@ -248,6 +263,10 @@ class TestFunctionalLive(unittest.TestCase):
         path = marker_path(tag)
         if os.path.isfile(path):
             os.remove(path)
+        if sys.platform.startswith('win'):
+            import test_workbar as wb
+            wb._nudge_sg()
+            time.sleep(0.25)
         self.assertTrue(set_clip(protocol.make_command(protocol.CMD_CLEAR)))
         time.sleep(0.8)
         self.assertFalse(

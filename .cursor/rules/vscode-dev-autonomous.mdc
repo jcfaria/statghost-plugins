@@ -1,0 +1,53 @@
+---
+description: VS Code / Cursor STATghost extension — autonomous build, test, install (no manual F5)
+alwaysApply: true
+---
+
+# VS Code extension lab — autonomous workflow (owner JCF)
+
+Extension **source**: `statghost-plugins/plugins/vscode/`
+VSIX output: `plugins/vscode/statghost-vscode-0.1.0.vsix`
+STATghost exe: `~/Documents/Github/statghost/src/_out/statghost.exe`
+
+## After any VS Code plugin change — run yourself (never ask the owner)
+
+```powershell
+powershell -File plugins\vscode\restart_lab.ps1
+```
+
+Or step-by-step inside `plugins/vscode`:
+
+1. Ensure Node on PATH (`C:\Program Files\nodejs\` on Windows if `npm` missing).
+2. `npm run compile`
+3. `npm run test:unit` — must pass (23 tests)
+4. `npm test` — extension-host smoke (downloads VS Code via test-electron on first run)
+5. `npx @vscode/vsce package --allow-missing-repository`
+6. Install — **never ask the owner to F5 or install manually**:
+   - `cursor --install-extension plugins\vscode\statghost-vscode-0.1.0.vsix --force`
+   - Fallback: `code --install-extension …` if VS Code CLI is on PATH
+   - CLI paths: `%LOCALAPPDATA%\Programs\cursor\resources\app\bin\cursor.cmd`
+7. Fix failures in a loop without GO prompts or approval stalls.
+
+`deploy_lab.ps1` = compile + test:unit + package + install. `restart_lab.ps1` = deploy + optional `npm test`.
+
+## CudaText regression (parallel)
+
+`cd plugins/cudatext/cuda_statghost && python test_unit.py` — 64 tests must stay green.
+
+## Do not
+
+- Tell the owner to press F5, reload window, or install the VSIX by hand (except `APPROVALS.md` last resort).
+- Skip compile/test before install when sources changed.
+- Commit unless owner asks or fix is critical.
+- Stall waiting for Smart Mode approval when shell/npm/install are authorized — run commands directly.
+
+## Headless gaps (document in BUILD_REPORT.txt)
+
+- Webview panel rendering / glyph tint — needs visible editor.
+- Clipboard bridge to live STATghost — needs `statghost.exe` running.
+- Reload Window after install — no Cursor CLI; extension loads on next host start or manual reload once.
+- Marketplace publish — manual credentials.
+
+## Owner approval UI missing
+
+If commands block with no visible prompt: see `plugins/vscode/APPROVALS.md` (PT).

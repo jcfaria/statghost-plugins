@@ -19,7 +19,7 @@ not a REPL+Explorer bundle (D29).
 | `shared/png/` | Same chrome/brand glyphs for every host |
 | `plugins/` | Parent folder — one subfolder per host plugin |
 | `plugins/cudatext/` | CudaText host (CODE, install, TF, workbar SAP) |
-| `plugins/vscode/` | Next host (VS Code / Cursor) — folder reserved; no CODE yet |
+| `plugins/vscode/` | VS Code / Cursor host — extension v0.1 (panel, submenus, bridge) |
 | `lexer-dev/` | Workshop LCF packs |
 | `lexer/` | Promoted packs (CudaText `data/lexlib` + STATghost Console via build) |
 | `docs/` | Notes + optional sync into STATghost `_out/lexer` |
@@ -27,7 +27,7 @@ not a REPL+Explorer bundle (D29).
 The folder name on disk is the host; the menu caption is always
 **STATghost**. Further hosts (`plugins/notepadpp/`, …) land only with GO.
 
-## CudaText (Linux lab)
+## CudaText (lab)
 
 STATghost must be **running**. **Toggle Arm/Idle** sends an absolute
 `#. STATGHOST:ARM` or `#. STATGHOST:IDLE` token (never `TOGGLE_ARM` from
@@ -44,13 +44,21 @@ arrow / submenu = children (`Send▾` `Source▾` `Inspect▾` `Clear▾`).
 Config (tree **Send** / **Chrome** / **Host**) no longer stacks everything
 in one 560px pane.
 
+**Linux** (portable sibling + `cuda_jcf/run.sh`):
+
 ```bash
 bash plugins/cudatext/install_lab.sh
 # or: CUDA_ROOT=/path/to/CudaText bash plugins/cudatext/install_lab.sh
 ```
 
-Restart CudaText (`cuda_jcf/run.sh`) after plugin changes (Python is
-cached until restart). Then:
+**Windows 11 dev** (always **CudaText-jcf**, not upstream `CudaText/`):
+
+```powershell
+powershell -File plugins/cudatext/install_lab.ps1
+# default: ~/Documents/Github/CudaText-jcf/app/bin/windows-amd64/py/cuda_statghost
+```
+
+Restart CudaText after plugin changes (Python is cached until restart). Then:
 
 - **Plugins → STATghost → Send → Send** (selection / statement)
 - **Plugins → STATghost → Source / Inspect / Clear** (same children as the bars)
@@ -77,7 +85,8 @@ statghost-plugins/lexer   ← canonical packs
         └─→ STATghost src/build.ps1 → src/_out/lexer/
 
 statghost-plugins/plugins/cudatext/cuda_statghost
-        └─→ CudaText app/py/cuda_statghost  (symlink via plugins/cudatext/install_lab.sh)
+        ├─→ CudaText-jcf app/bin/windows-amd64/py/cuda_statghost  (install_lab.ps1)
+        └─→ portable app/py/cuda_statghost  (install_lab.sh + CUDA_ROOT)
 ```
 
 STATghost source keeps **only** `lexer/README.txt` (no LCF duplicates;

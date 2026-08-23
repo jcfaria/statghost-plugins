@@ -3,7 +3,7 @@ SAP -- CudaText plugin: work toolbar (Tinn-R_D → chrome)
 ================================================================================
 Status: VP-WB-1 GO+CODE (essential nests); VP-WB-2 glyph stash;
   VP-WB-3 RECORD; VP-WB-4 Rnoweb/knit/sweave RECORD; VP-WB-5 R-control GO+CODE
-Updated: 2026-08-16 (R-control: comfort = drive SG without Alt-Tab)
+Updated: 2026-08-22 (side tab: analytic grid only; menu/toolbar nested)
 Priority: compact the plugin bar without importing all of Tinn
 CODE branch: `work` (this companion `jcfaria/statghost-plugins`)
 Origin: Tinn-R_D `TBRMain` (ufrmMain.dfm, Toolbar2000) + owner request
@@ -16,7 +16,7 @@ Glossary: WORKBAR, VP-WB, TBRMain
 PT twin: ../../w_pt/br/01_sap_workbar.txt
 Skill: `.cursor/skills/sap-cpr-workbar/SKILL.md`
 Reference: `C:\Users\jcfaria\Documents\GitHub\Tinn-R_D` branch `work`
-  HEAD `6126062` (pull 2026-08-16)
+  HEAD `2dcf37e` (pull 2026-08-21; TBRMain cut unchanged)
 
 **MOTTO:** Keep this project as simple and effective as possible!
 
@@ -99,9 +99,11 @@ B) **Nests (Cuda toolbar)** — click = parent; arrow = children:
   Default top-level (WB-5):
     Config | Arm/Idle | Start/Quit | Send▾ | Source▾ | Inspect▾ | Clear▾
 
-C) **Side tab:** **same nest tree** as the toolbar (parent + arrow
-   children; one column; no wrap when the panel widens). Same ids /
-   relative order. Plugins menu uses the same submenus.
+C) **Side tab:** one zone (owner 2026-08-22). **Analytic 3-col grid only**
+   — family stripes (Host, Send, Source, …), one button per visible
+   action (`chrome.show`, same set as toolbar/menu). No synthetic strip
+   on top. Icons 16/24/32 later. Plugins menu + toolbar keep synthetic
+   nests (Send▾ / Source▾ / …).
 
 D) **Assign / pipe / Outline:** EB-1b extras, **not** on TBRMain. Stay
    opt-in flats (Config). Insert nest = VP-WB-3.
@@ -285,6 +287,21 @@ JOURNAL
               column (`TOOLBAR_SET_VERTICAL`, wrap off); order =
               expanded main toolbar.
   2026-08-16  Owner: same nest tree on menu, toolbar and side tab.
+  2026-08-22  Owner: side tab = **analytic grid only** (family stripes +
+              buttons); menu/toolbar keep synthetic nests. GO CODE.
+  2026-08-21  Owner: side tab body = 3-col analytic grid (all actions);
+              top keeps synthetic nests. Icon px later.
+              (superseded 2026-08-22 — synthetic side strip removed.)
+  2026-08-21  Model review (Tinn TBRMain vs plugin, multi-editor):
+              classroom send/inspect/clear is complete. Same action ids
+              to keep across editors: cfg/arm/host + Send/Source/
+              Inspect/Clear trees + assign/pipe/outline. RECORD only
+              (wait GO): Weave▾ sweave / knit_latex / knit_html (WB-4);
+              Insert▾ nest around already-shipped flats (WB-3). Optional
+              later RECORD: getwd (Tinn Get WorkDir). Stays editor-
+              specific: compile .tex/.html, file_open artefact, hotkeys,
+              DATA1 vs host APIs. Still OUT: Explorer widget, Packages,
+              Rterm/Rgui, knit2pdf, edit/fix/ESC.
 
 ================================================================================
 END SAP workbar

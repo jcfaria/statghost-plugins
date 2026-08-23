@@ -161,6 +161,14 @@ JOURNAL
               rm/plot/help/Config). on_cli allowlist.
   2026-08-16  Side tab: one vertical column, wrap off (ls/str not a pair).
   2026-08-16  Owner: menu / toolbar / side tab share one nest tree.
+  2026-08-22  Owner: side tab = analytic grid only; menu/toolbar stay
+              nested. GO CODE.
+  2026-08-21  Owner: side tab body = 3-col analytic grid (all actions);
+              top keeps nests. Icon 16/24/32 later.
+              (superseded 2026-08-22.)
+  2026-08-21  Model review: keep current action ids as the multi-editor
+              contract. WB-3/WB-4 stay RECORD (no CODE). Optional later:
+              getwd. Tinn-R_D HEAD `2dcf37e` (TBRMain unchanged).
   2026-08-16  Workbar live Send on Linux (X11), not Windows-only.
   2026-08-16  Win10+Linux reunified: sibling_dir skips host folder;
               workbar Send reads keys.json (fallback Ctrl+Enter).

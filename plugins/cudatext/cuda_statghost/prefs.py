@@ -21,6 +21,7 @@ _source_encoding_cache = None
 _pipe_cache = None
 _icons_fg_cache = None
 _chrome_show_cache = None
+_grid_label_cache = None
 
 
 def ini_path():
@@ -137,7 +138,7 @@ def set_pipe_token(kind):
 
 
 def get_icons_fg():
-    """Icon FG: auto (default) | light | dark | theme (raw ButtonFont)."""
+    """Icon FG: auto | light (white) | dark (graphite) | gray | theme."""
     global _icons_fg_cache
     if _icons_fg_cache is not None:
         return str(_icons_fg_cache)
@@ -145,17 +146,17 @@ def get_icons_fg():
     if raw is None or str(raw).strip() == '':
         raw = 'auto'
     key = str(raw).strip().lower()
-    if key not in ('auto', 'light', 'dark', 'theme'):
+    if key not in ('auto', 'light', 'dark', 'gray', 'theme'):
         key = 'auto'
     _icons_fg_cache = key
     return str(_icons_fg_cache)
 
 
 def set_icons_fg(mode):
-    """mode: auto | light | dark | theme."""
+    """mode: auto | light | dark | gray | theme."""
     global _icons_fg_cache
     key = (mode or '').strip().lower()
-    if key not in ('auto', 'light', 'dark', 'theme'):
+    if key not in ('auto', 'light', 'dark', 'gray', 'theme'):
         key = 'auto'
     ini_write(ini_path(), 'icons', 'fg', key)
     _icons_fg_cache = key
@@ -186,6 +187,32 @@ def set_chrome_show(keys):
     keys = cs.parse_show(','.join(keys or ()))
     ini_write(ini_path(), 'chrome', 'show', cs.format_show(keys))
     _chrome_show_cache = keys
+
+
+def get_grid_label():
+    """Keypad caption: below (default) | icon."""
+    global _grid_label_cache
+    if _grid_label_cache is not None:
+        return str(_grid_label_cache)
+    try:
+        from . import chrome_show as cs
+    except ImportError:
+        import chrome_show as cs
+    raw = ini_read(ini_path(), 'chrome', 'grid_label', cs.GRID_LABEL_DEFAULT)
+    _grid_label_cache = cs.parse_grid_label(raw)
+    return str(_grid_label_cache)
+
+
+def set_grid_label(mode):
+    """mode: below | icon."""
+    global _grid_label_cache
+    try:
+        from . import chrome_show as cs
+    except ImportError:
+        import chrome_show as cs
+    key = cs.parse_grid_label(mode)
+    ini_write(ini_path(), 'chrome', 'grid_label', key)
+    _grid_label_cache = key
 
 
 def encoding_for_r(enc=None):

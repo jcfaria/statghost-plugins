@@ -7,7 +7,9 @@ from __future__ import annotations
 
 import os
 
+from cudatext import ALIGN_BOTTOM
 from cudatext import ALIGN_CLIENT
+from cudatext import ALIGN_NONE
 from cudatext import ALIGN_TOP
 from cudatext import BTN_GET_DATA2
 from cudatext import BTN_SET_DATA1
@@ -17,27 +19,29 @@ from cudatext import BTN_SET_HINT
 from cudatext import BTN_SET_IMAGEINDEX
 from cudatext import BTN_SET_IMAGELIST
 from cudatext import BTN_SET_ARROW
+from cudatext import BTN_SET_BOLD
 from cudatext import BTN_SET_KIND
 from cudatext import BTN_SET_MENU
 from cudatext import BTN_SET_TEXT
 from cudatext import BTN_SET_VISIBLE
+from cudatext import BTN_SET_WIDTH
 from cudatext import BTNKIND_ICON_ONLY
 from cudatext import BTNKIND_SEP_HORZ
-from cudatext import BTNKIND_TEXT_ICON_HORZ
+from cudatext import BTNKIND_SEP_VERT
 from cudatext import DLG_CREATE
 from cudatext import DLG_CTL_ADD
+from cudatext import DLG_CTL_DELETE
 from cudatext import DLG_CTL_HANDLE
+from cudatext import DLG_CTL_PROP_GET
 from cudatext import DLG_CTL_PROP_SET
+from cudatext import DLG_LOCK
 from cudatext import DLG_PROP_SET
+from cudatext import DLG_UNLOCK
 from cudatext import IMAGELIST_ADD
 from cudatext import IMAGELIST_CREATE
 from cudatext import IMAGELIST_DELETE_ALL
 from cudatext import IMAGELIST_GET_SIZE
 from cudatext import IMAGELIST_SET_SIZE
-from cudatext import LISTBOX_ADD
-from cudatext import LISTBOX_DELETE_ALL
-from cudatext import LISTBOX_SET_ITEM_H
-from cudatext import LISTBOX_THEME
 from cudatext import MENU_ADD
 from cudatext import MENU_CREATE
 from cudatext import MENU_ENUM
@@ -61,7 +65,6 @@ from cudatext import app_proc
 from cudatext import button_proc
 from cudatext import dlg_proc
 from cudatext import imagelist_proc
-from cudatext import listbox_proc
 from cudatext import menu_proc
 from cudatext import msg_status
 from cudatext import timer_proc
@@ -85,6 +88,23 @@ TITLE = 'STATghost'
 TAG = 'statghost-eb1'
 TOOLS_CAP = 'Tools'
 TICK_MS = 2000
+GRID_ROW_H = 32
+GRID_HDR_H = 18
+GRID_RULE_H = 1
+GRID_CELL_W = 88
+GRID_CAP_H = 17
+# Side imagelist is 16px. The below-mode toolbar used to eat the leftover
+# of row_h − GRID_CAP_H (35px in a 52px row), so LCL centered the glyph
+# and left ~10px of air above the caption. Hug the icon instead.
+GRID_ICON_STRIP_H = 20
+# Narrow + dense: button count will grow. icon = tight glyphs; below =
+# icon strip + caption label (contrast via icons_fg, not ButtonFont).
+_GRID_METRICS = {
+    'icon': (26, 20),
+    'below': (36, GRID_ICON_STRIP_H + GRID_CAP_H),
+}
+STATUS_H_MAX = 96
+STATUS_LINE_H = 18
 
 # name, hint, Command method, icon file (or None = separator).
 # Order: sep | SG chrome (Settings, Arm, Kill) | sep | editor Send/Clear.
@@ -160,30 +180,8 @@ _SIDE = tuple(
     if method is not None
 )
 
-# Tinn colour art — do not run through icons.py tint (WB-4 Rnoweb;
-# WB-5 R-control inspect / hygiene).
-_COLOUR_PNG = frozenset((
-    'sweave.png',
-    'knit.png',
-    'knit-html.png',
-    'ls.png',
-    'print.png',
-    'print_head.png',
-    'print_tail.png',
-    'names.png',
-    'str.png',
-    'plot.png',
-    'help_selected.png',
-    'close_graphics.png',
-    'remove_objects.png',
-    'clear_all.png',
-))
-
-
 def _icon_load(path, fname, rgb):
-    """Tint Flaticon; keep Tinn colour Rnoweb / R-control glyphs as-is."""
-    if os.path.basename(fname) in _COLOUR_PNG:
-        return path
+    """Tint every glyph (masks in res/; no hue left in the PNG)."""
     try:
         return icontint.tinted_path(path, rgb)
     except Exception:
@@ -218,7 +216,15 @@ def _here():
 
 
 def _png_dir():
-    return os.path.join(_here(), 'png')
+    """Canonical glyphs: plugin res/, else repo shared/res, else png/."""
+    here = _here()
+    local = os.path.join(here, 'res')
+    if os.path.isdir(os.path.join(local, '16px')):
+        return local
+    shared = os.path.normpath(os.path.join(here, '..', '..', '..', 'shared', 'res'))
+    if os.path.isdir(os.path.join(shared, '16px')):
+        return shared
+    return os.path.join(here, 'png')
 
 
 def _icon_folder(px):
@@ -259,12 +265,31 @@ def _rgb(r, g, b):
     return r | (g << 8) | (b << 16)
 
 
-def _mid_ellipsis(text, n=36):
-    if not text or len(text) <= n:
-        return text
-    keep = n - 1
-    left = max(8, keep // 3)
-    return text[:left] + '…' + text[-(keep - left):]
+def _unpack_rgb(c):
+    return c & 0xFF, (c >> 8) & 0xFF, (c >> 16) & 0xFF
+
+
+def _blend_rgb(c1, c2, t):
+    """Mix two LCL RGB colors; t=0 → c1, t=1 → c2."""
+    r1, g1, b1 = _unpack_rgb(c1)
+    r2, g2, b2 = _unpack_rgb(c2)
+    t = max(0.0, min(1.0, float(t)))
+    return _rgb(
+        int(r1 + (r2 - r1) * t),
+        int(g1 + (g2 - g1) * t),
+        int(b1 + (b2 - b1) * t),
+    )
+
+
+def _hdr_band_bg(back, face, border):
+    """Slight stripe lift/dip vs TabBg — BG only, not caption colour."""
+    r, g, b = _unpack_rgb(back)
+    luma = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255.0
+    if luma < 0.45:
+        lift = face if face != back else _rgb(0x52, 0x52, 0x56)
+        return _blend_rgb(back, lift, 0.58)
+    shade = border if border != back else _rgb(0xC8, 0xC8, 0xCC)
+    return _blend_rgb(back, shade, 0.32)
 
 
 class Chrome:
@@ -277,9 +302,15 @@ class Chrome:
         self._icons = {}
         self._imglist = None
         self._h_dlg = None
-        self._h_side_bar = None
+        self._h_side_il = None
         self._h_side_list = None
-        self._side_btns = {}
+        self._grid_btns = {}
+        self._grid_cap_labels = {}
+        self._grid_meta = {}
+        self._grid_ctl_names = []
+        self._grid_bars = []
+        self._side_freeze = 0
+        self._grid_content_h = 1
         self._side_icon_idx = {}
         self._side_ready = False
         self._timer = False
@@ -392,66 +423,474 @@ class Chrome:
 
     def rebuild_chrome(self):
         """Re-apply visible buttons after Config (toolbar recreate + side)."""
-        self.install_toolbar()
-        self._rebuild_side_buttons()
-        self._apply_side_visibility()
-        self.refresh()
-        if self._h_side_bar:
-            toolbar_proc(self._h_side_bar, TOOLBAR_UPDATE)
+        self._freeze_side(True)
+        try:
+            self.install_toolbar()
+            self._rebuild_side_buttons()
+            self._apply_side_visibility()
+            self.refresh()
+            for h_bar in self._grid_bars:
+                try:
+                    toolbar_proc(h_bar, TOOLBAR_UPDATE)
+                except Exception:
+                    pass
+        finally:
+            self._freeze_side(False)
 
-    def _layout_side_bar(self, h_bar):
-        """One vertical column, toolbar relative order — never wrap with width."""
+    def _freeze_side(self, frozen):
+        """Hide/lock the side form while toolbars and the keypad are rebuilt."""
+        if frozen:
+            self._side_freeze += 1
+            if self._side_freeze > 1:
+                return
+        else:
+            self._side_freeze = max(0, self._side_freeze - 1)
+            if self._side_freeze:
+                return
+        if not self._h_dlg:
+            return
+        try:
+            dlg_proc(self._h_dlg, DLG_LOCK if frozen else DLG_UNLOCK)
+        except Exception:
+            pass
+        prop = {'vis': (not frozen), 'en': (not frozen)}
+        for name in ('grid_scroll', 'grid'):
+            try:
+                dlg_proc(self._h_dlg, DLG_CTL_PROP_SET, name=name, prop=prop)
+            except Exception:
+                pass
+        if not frozen:
+            self._refresh_side_scroll()
+
+    def _refresh_side_scroll(self):
+        """Re-pin keypad height after unfreeze / dock — AutoScroll skipped
+        while grid_scroll was hidden (Apply/rebuild freeze)."""
+        if not self._h_dlg or self._side_freeze:
+            return
+        self._size_side_grid(self._grid_content_h)
+
+    def _ensure_side_il(self):
+        if self._h_side_il:
+            return
+        try:
+            self._h_side_il = imagelist_proc(0, IMAGELIST_CREATE, value=0)
+        except Exception:
+            self._h_side_il = None
+
+    def _rebuild_side_buttons(self):
+        """Drop and recreate the side-tab analytic keypad."""
+        self._ensure_side_il()
+        self._side_icon_idx = self._fill_imagelist(self._h_side_il, 16)
+        self._fill_side_grid()
+
+    def _clear_side_grid(self):
+        """Drop analytic-grid child toolbars (Config rebuild)."""
+        if not self._h_dlg:
+            self._grid_btns = {}
+            self._grid_cap_labels = {}
+            self._grid_meta = {}
+            self._grid_ctl_names = []
+            self._grid_bars = []
+            return
+        for name in self._grid_ctl_names:
+            try:
+                dlg_proc(self._h_dlg, DLG_CTL_DELETE, name=name)
+            except Exception:
+                pass
+        self._grid_btns = {}
+        self._grid_cap_labels = {}
+        self._grid_meta = {}
+        self._grid_ctl_names = []
+        self._grid_bars = []
+
+    def _grid_add(self, kind, prop):
+        """Add a named child of the analytic `grid` panel."""
+        n = dlg_proc(self._h_dlg, DLG_CTL_ADD, kind)
+        dlg_proc(self._h_dlg, DLG_CTL_PROP_SET, index=n, prop=prop)
+        name = prop.get('name')
+        if name:
+            self._grid_ctl_names.append(name)
+        return dlg_proc(self._h_dlg, DLG_CTL_HANDLE, index=n)
+
+    def _theme_bar(self, h_bar):
+        """Copy ATFlatTheme (same tokens as the main CudaText toolbar)."""
         if not h_bar:
             return
         try:
-            toolbar_proc(h_bar, TOOLBAR_SET_VERTICAL, index=True)
-            toolbar_proc(h_bar, TOOLBAR_SET_WRAP, index=False)
+            toolbar_proc(h_bar, TOOLBAR_THEME)
+            toolbar_proc(h_bar, TOOLBAR_UPDATE)
         except Exception:
+            pass
+
+    def _ctl_theme(self, name, color=None, font_color=None, font_style=None):
+        if not self._h_dlg or not name:
+            return
+        prop = {}
+        if color is not None:
+            prop['color'] = color
+        if font_color is not None:
+            prop['font_color'] = font_color
+        if font_style is not None:
+            prop['font_style'] = font_style
+        if not prop:
+            return
+        try:
+            dlg_proc(self._h_dlg, DLG_CTL_PROP_SET, name=name, prop=prop)
+        except Exception:
+            pass
+
+    def _grid_rule(self, idx, parent):
+        """Hairline under the family title (between title and keys)."""
+        pal = self._palette()
+        name = 'grid_rule_%d' % idx
+        self._grid_add('panel', {
+            'name': name,
+            'p': parent,
+            'align': ALIGN_TOP,
+            'h': GRID_RULE_H,
+            'sp_l': 6,
+            'sp_r': 6,
+            'sp_t': 1,
+            'sp_b': 1,
+            'color': pal['border'],
+        })
+
+    def _grid_hdr(self, title, idx, parent):
+        pal = self._palette()
+        band = 'grid_hdr_band_%d' % idx
+        self._grid_add('panel', {
+            'name': band,
+            'p': parent,
+            'align': ALIGN_TOP,
+            'h': GRID_HDR_H,
+            'sp_l': 2,
+            'sp_r': 2,
+            'sp_t': 1,
+            'sp_b': 0,
+            'color': pal['hdr_band'],
+        })
+        self._grid_add('label', {
+            'name': 'grid_hdr_%d' % idx,
+            'p': band,
+            'align': ALIGN_CLIENT,
+            'cap': '  ' + title.upper(),
+            'sp_l': 4,
+            'sp_t': 1,
+            'color': pal['hdr_band'],
+            'font_color': pal['muted'],
+            'font_style': 'b',
+        })
+
+    def _grid_metrics(self):
+        """cell_w, row_h for the current chrome.grid_label pref.
+
+        below: width = longest GRID_CAP + 20% (chrome_show.grid_cell_w).
+        Cells still stretch equal via a_l/a_r; this is the placeholder
+        so gtk2/win32 pack Source|Sel apart before anchors fire.
+        """
+        mode = prefs.get_grid_label()
+        ph_w, row_h = _GRID_METRICS.get(mode, _GRID_METRICS['below'])
+        if mode == 'below':
+            return chrome_show.grid_cell_w(), row_h
+        return ph_w, row_h
+
+    def _grid_cell_props(self, row_name, col, cell_w, row_h):
+        """Placeholder size until siblings exist and a_l/a_r can bind."""
+        pal = self._palette()
+        return {
+            'name': 'gc_%s_%d' % (row_name, col),
+            'p': row_name,
+            'x': 4 + col * cell_w,
+            'y': 1,
+            'w': cell_w,
+            'h': row_h - 2,
+            'color': pal['back'],
+        }
+
+    def _grid_bind_row(self, row_name, cols):
+        """Equal cells: bind a_l/a_r only after every sibling name exists.
+
+        Inner gutter 3+3 so adjacent captions (Source|Sel) do not run
+        together; outer 4 matches the card edge.
+        """
+        last = cols - 1
+        for col in range(cols):
+            prev = 'gc_%s_%d' % (row_name, col - 1)
+            nxt = 'gc_%s_%d' % (row_name, col + 1)
+            name = 'gc_%s_%d' % (row_name, col)
+            if col == 0:
+                prop = {
+                    'a_l': ('', '['),
+                    'a_r': (nxt, '['),
+                    'sp_l': 4,
+                    'sp_r': 3,
+                }
+            elif col == last:
+                prop = {
+                    'a_l': (prev, ']'),
+                    'a_r': ('', ']'),
+                    'sp_l': 3,
+                    'sp_r': 4,
+                }
+            else:
+                prop = {
+                    'a_l': (prev, ']'),
+                    'a_r': (nxt, '['),
+                    'sp_l': 3,
+                    'sp_r': 3,
+                }
             try:
-                toolbar_proc(h_bar, TOOLBAR_SET_WRAP, index=False)
+                dlg_proc(self._h_dlg, DLG_CTL_PROP_SET, name=name, prop=prop)
             except Exception:
                 pass
 
-    def _rebuild_side_buttons(self):
-        """Drop and recreate side-tab actions (EB-1b set may grow)."""
-        h_bar = self._h_side_bar
-        if not h_bar:
+    def _apply_grid_label(self, hb, key):
+        """KIND + caption — below uses icon-only + themed label under the glyph."""
+        if not hb:
             return
+        cap, hint = self._grid_meta.get(key, (key, key))
+        mode = prefs.get_grid_label()
+        cell_w, _row_h = self._grid_metrics()
+        if mode == 'icon':
+            button_proc(hb, BTN_SET_KIND, BTNKIND_ICON_ONLY)
+            button_proc(hb, BTN_SET_TEXT, '')
+            button_proc(hb, BTN_SET_BOLD, False)
+            self._sync_grid_caption(key, '')
+        else:
+            button_proc(hb, BTN_SET_KIND, BTNKIND_ICON_ONLY)
+            button_proc(hb, BTN_SET_TEXT, '')
+            button_proc(hb, BTN_SET_BOLD, False)
+            self._sync_grid_caption(key, cap)
+        button_proc(hb, BTN_SET_HINT, hint)
         try:
-            n = toolbar_proc(h_bar, TOOLBAR_GET_COUNT) or 0
+            button_proc(hb, BTN_SET_WIDTH, max(24, cell_w - 8))
         except Exception:
-            return
-        for i in range(n - 1, -1, -1):
-            toolbar_proc(h_bar, TOOLBAR_DELETE_BUTTON, index=i)
-        il = toolbar_proc(h_bar, TOOLBAR_GET_IMAGELIST)
-        side_icons = self._fill_imagelist(il, 16)
-        self._fill_side_buttons(h_bar, side_icons)
-        self._layout_side_bar(h_bar)
+            pass
 
-    def _fill_side_buttons(self, h_bar, side_icons):
-        """Same nest tree as the main toolbar: parent click + arrow kids."""
-        self._side_btns = {}
-        show = prefs.get_chrome_show()
-        methods = {row[0]: row[2] for row in _SIDE}
-        for name, cap, method, _icon in chrome_show.filter_side_actions(
-            _SIDE, show,
-        ):
-            toolbar_proc(h_bar, TOOLBAR_ADD_ITEM)
-            cnt = toolbar_proc(h_bar, TOOLBAR_GET_COUNT) or 0
-            hb = toolbar_proc(h_bar, TOOLBAR_GET_BUTTON_HANDLE, index=cnt - 1)
-            if not hb:
+    def _sync_grid_caption(self, key, cap):
+        """High-contrast caption label (below mode) — same FG logic as icons."""
+        name = self._grid_cap_labels.get(key)
+        if not name or not self._h_dlg:
+            return
+        pal = self._palette()
+        try:
+            dlg_proc(self._h_dlg, DLG_CTL_PROP_SET, name=name, prop={
+                'cap': cap,
+                'color': pal['back'],
+                'font_color': pal['caption'],
+            })
+        except Exception:
+            pass
+
+    def _polish_grid_keys(self):
+        for key, hb in self._grid_btns.items():
+            try:
+                self._apply_grid_label(hb, key)
+            except Exception:
+                pass
+
+    def _fill_grid_key(self, h_bar, key, methods, hints, il, icons):
+        method = methods.get(key)
+        if not method:
+            return
+        toolbar_proc(h_bar, TOOLBAR_ADD_ITEM)
+        cnt = toolbar_proc(h_bar, TOOLBAR_GET_COUNT) or 0
+        hb = toolbar_proc(h_bar, TOOLBAR_GET_BUTTON_HANDLE, index=cnt - 1)
+        if not hb:
+            return
+        cap = chrome_show.GRID_CAP.get(key, _SIDE_CAP.get(key, key))
+        hint = hints.get(key, cap)
+        self._grid_meta[key] = (cap, hint)
+        self._apply_grid_label(hb, key)
+        if il:
+            button_proc(hb, BTN_SET_IMAGELIST, il)
+        button_proc(hb, BTN_SET_IMAGEINDEX, icons.get(key, -1))
+        button_proc(
+            hb, BTN_SET_DATA1,
+            'module=cuda_statghost;cmd=' + method + ';',
+        )
+        self._grid_btns[key] = hb
+
+    def _grid_families(self, plan):
+        """Group grid_plan into (title, row-tuples) — Host first."""
+        families = []
+        title = None
+        rows = []
+        for kind, payload in plan:
+            if kind == 'hdr':
+                if title is not None:
+                    families.append((title, tuple(rows)))
+                title = payload
+                rows = []
+            elif kind == 'row':
+                rows.append(tuple(payload))
+        if title is not None:
+            families.append((title, tuple(rows)))
+        return families
+
+    def _fill_grid_row(self, parent, row_i, keys, cols, methods, hints, il, icons):
+        keys = tuple(keys) + (None,) * (cols - len(keys))
+        mode = prefs.get_grid_label()
+        cell_w, row_h = self._grid_metrics()
+        cap_h = GRID_CAP_H if mode == 'below' else 0
+        row_name = 'grid_row_%d' % row_i
+        pal = self._palette()
+        self._grid_add('panel', {
+            'name': row_name,
+            'p': parent,
+            'align': ALIGN_TOP,
+            'h': row_h,
+            'color': pal['back'],
+        })
+        for col in range(cols):
+            self._grid_add('panel', self._grid_cell_props(row_name, col, cell_w, row_h))
+        self._grid_bind_row(row_name, cols)
+        for col, key in enumerate(keys):
+            if not key:
                 continue
-            button_proc(hb, BTN_SET_KIND, BTNKIND_TEXT_ICON_HORZ)
-            button_proc(hb, BTN_SET_TEXT, cap)
-            button_proc(hb, BTN_SET_HINT, cap)
-            button_proc(hb, BTN_SET_IMAGEINDEX, side_icons.get(name, -1))
-            button_proc(
-                hb, BTN_SET_DATA1,
-                'module=cuda_statghost;cmd=' + method + ';',
+            cell = 'gc_%s_%d' % (row_name, col)
+            tb_name = 'gt_%s_%d' % (row_name, col)
+            tb_prop = {
+                'name': tb_name,
+                'p': cell,
+                'align': ALIGN_TOP if mode == 'below' else ALIGN_CLIENT,
+            }
+            if mode == 'below':
+                tb_prop['h'] = max(GRID_ICON_STRIP_H, row_h - cap_h)
+            h_bar = self._grid_add('toolbar', tb_prop)
+            if not h_bar:
+                continue
+            self._grid_bars.append(h_bar)
+            try:
+                toolbar_proc(h_bar, TOOLBAR_SET_VERTICAL, index=False)
+                toolbar_proc(h_bar, TOOLBAR_SET_WRAP, index=False)
+            except Exception:
+                pass
+            self._theme_bar(h_bar)
+            self._fill_grid_key(h_bar, key, methods, hints, il, icons)
+            self._theme_bar(h_bar)
+            if mode == 'below':
+                cap = chrome_show.GRID_CAP.get(key, _SIDE_CAP.get(key, key))
+                cap_name = 'gl_%s_%d' % (row_name, col)
+                self._grid_add('label', {
+                    'name': cap_name,
+                    'p': cell,
+                    'align': ALIGN_BOTTOM,
+                    'h': cap_h,
+                    'sp_l': 2,
+                    'sp_r': 2,
+                    'sp_t': 0,
+                    'sp_b': 1,
+                    'color': pal['back'],
+                    'font_color': pal['caption'],
+                    'cap': cap,
+                })
+                self._grid_cap_labels[key] = cap_name
+            if key in self._grid_btns:
+                self._apply_grid_label(self._grid_btns[key], key)
+
+    def _size_side_grid(self, total_h):
+        """Pin keypad height for scrollbox AutoScroll (must be Align=None).
+
+        LCL/VCL CalcAutoRange ignores Align≠alNone children, so ALIGN_TOP
+        inside the scrollbox never raises VertScrollBar — even when h is
+        larger than the client. Absolute x/y/h + left/right anchors match
+        cuda_testing_canvas_proc. Re-apply after unfreeze so the bar
+        recalculates when the scrollbox is visible again.
+        """
+        if not self._h_dlg:
+            return
+        h = max(1, int(total_h))
+        self._grid_content_h = h
+        prop = {
+            'align': ALIGN_NONE,
+            'x': 0,
+            'y': 0,
+            'h': h,
+            'h_min': h,
+            'a_l': ('', '['),
+            'a_r': ('', ']'),
+            'sp_l': 2,
+            'sp_r': 2,
+            'sp_t': 2,
+            'sp_b': 2,
+        }
+        try:
+            sc = dlg_proc(self._h_dlg, DLG_CTL_PROP_GET, name='grid_scroll') or {}
+            sw = int(sc.get('w') or 0)
+            if sw > 0:
+                prop['w'] = max(1, sw)
+        except Exception:
+            pass
+        try:
+            dlg_proc(self._h_dlg, DLG_CTL_PROP_SET, name='grid', prop=prop)
+        except Exception:
+            pass
+
+    def _fill_side_grid(self):
+        """Family cards: title above keys (LCL alTop = last child on top).
+
+        Toolbar DATA1 (not button_ex on_change): the side form is
+        reparented, so gtk2 bound clicks stay dead. Existing 16px glyphs;
+        24/32 is a later pass.
+        """
+        if not self._h_dlg:
+            return
+        total_h = 1
+        self._freeze_side(True)
+        try:
+            total_h = self._fill_side_grid_body()
+        finally:
+            self._freeze_side(False)
+
+    def _fill_side_grid_body(self):
+        self._clear_side_grid()
+        methods = {row[0]: row[2] for row in _SIDE}
+        hints = {row[0]: row[1] for row in _TB if row[2] is not None}
+        plan = chrome_show.grid_plan(prefs.get_chrome_show())
+        cols = chrome_show.GRID_COLS
+        il = self._h_side_il
+        icons = self._side_icon_idx
+        families = self._grid_families(plan)
+        # Last alTop sibling sits at the top edge — add Edit first, Host last.
+        row_i = 0
+        row_index = {}
+        for title, rows in families:
+            for _keys in rows:
+                row_index[(title, _keys)] = row_i
+                row_i += 1
+        total_h = 4  # grid sp_t + sp_b
+        for fam_i, (title, rows) in enumerate(reversed(families)):
+            visual_i = len(families) - 1 - fam_i
+            card = 'grid_card_%d' % visual_i
+            _cell_w, row_h = self._grid_metrics()
+            card_h = (
+                GRID_HDR_H + GRID_RULE_H + len(rows) * row_h + 6
             )
-            self._attach_nest_menu(hb, name, methods, show)
-            self._side_btns[name] = hb
-        self._side_icon_idx = side_icons
+            total_h += card_h + 1  # card + sp_b
+            pal = self._palette()
+            self._grid_add('panel', {
+                'name': card,
+                'p': 'grid',
+                'align': ALIGN_TOP,
+                'h': card_h,
+                'sp_t': 0,
+                'sp_b': 1,
+                'color': pal['back'],
+            })
+            # Inside the card: keys first, hairline, header last → title on top.
+            for keys in reversed(rows):
+                self._fill_grid_row(
+                    card, row_index[(title, keys)], keys, cols,
+                    methods, hints, il, icons,
+                )
+            self._grid_rule(visual_i, card)
+            self._grid_hdr(title, visual_i, card)
+        # Cards use ALIGN_TOP inside `grid`; `grid` itself stays Align=None
+        # so the scrollbox can measure overflow (see _size_side_grid).
+        self._grid_content_h = max(1, int(total_h))
+        self._apply_side_theme()
+        return total_h
 
     def _create_toolbar(self, h_bar):
         self._btns = {}
@@ -607,14 +1046,19 @@ class Chrome:
             self._load_icons(h_bar)
             self._apply_imglist()
             self._reload_side_icons()
+            self._apply_side_theme()
+            self._refresh_side_scroll()
             self._arm_paint = None
             self._side_lines = None
             self._icons_sig = sig
             self.refresh()
             if h_bar:
                 toolbar_proc(h_bar, TOOLBAR_UPDATE)
-            if self._h_side_bar:
-                toolbar_proc(self._h_side_bar, TOOLBAR_UPDATE)
+            for h_sb in self._grid_bars:
+                try:
+                    toolbar_proc(h_sb, TOOLBAR_UPDATE)
+                except Exception:
+                    pass
         finally:
             self._icons_busy = False
 
@@ -711,17 +1155,12 @@ class Chrome:
 
     def _reload_side_icons(self):
         """Re-tint side-tab imagelist after theme / icons-FG change."""
-        if not self._h_side_bar:
+        if not self._h_side_il:
             return
-        il = toolbar_proc(self._h_side_bar, TOOLBAR_GET_IMAGELIST)
-        if not il:
-            return
-        side_icons = self._fill_imagelist(il, 16)
+        side_icons = self._fill_imagelist(self._h_side_il, 16)
         self._side_icon_idx = side_icons
-        for name, hb in self._side_btns.items():
-            if name == 'arm':
-                continue
-            if name == 'host':
+        for name, hb in self._grid_btns.items():
+            if name in ('arm', 'host'):
                 continue
             button_proc(hb, BTN_SET_IMAGEINDEX, side_icons.get(name, -1))
         # arm/host indices follow Armed/Idle state in refresh()
@@ -739,59 +1178,79 @@ class Chrome:
             msg_status(PLUGIN + ': side tab — DLG_CREATE failed')
             return
         self._h_dlg = h
-        dlg_proc(h, DLG_PROP_SET, prop={'cap': TITLE})
-        n = dlg_proc(h, DLG_CTL_ADD, 'toolbar')
+        pal = self._palette()
+        dlg_proc(h, DLG_PROP_SET, prop={'cap': TITLE, 'color': pal['back']})
+        # Footer starts collapsed. TATListbox (listbox_ex) paints TreeBg —
+        # a pale paper island. LCL listbox + TabBg, shown only for outline.
+        n = dlg_proc(h, DLG_CTL_ADD, 'panel')
         dlg_proc(h, DLG_CTL_PROP_SET, index=n, prop={
-            'name': 'bar',
-            'align': ALIGN_TOP,
-            'h': 28,
-            'autosize': True,
+            'name': 'status_band',
+            'align': ALIGN_BOTTOM,
+            'h': 0,
+            'vis': False,
+            'color': pal['back'],
         })
-        h_bar = dlg_proc(h, DLG_CTL_HANDLE, index=n)
-        self._h_side_bar = h_bar
-        self._side_btns = {}
-        if h_bar:
-            toolbar_proc(h_bar, TOOLBAR_THEME)
-            il = toolbar_proc(h_bar, TOOLBAR_GET_IMAGELIST)
-            side_icons = self._fill_imagelist(il, 16)
-            self._fill_side_buttons(h_bar, side_icons)
-            self._apply_side_visibility()
-            self._layout_side_bar(h_bar)
-            toolbar_proc(h_bar, TOOLBAR_UPDATE)
-        n = dlg_proc(h, DLG_CTL_ADD, 'listbox_ex')
+        n = dlg_proc(h, DLG_CTL_ADD, 'listbox')
         dlg_proc(h, DLG_CTL_PROP_SET, index=n, prop={
             'name': 'status',
+            'p': 'status_band',
             'align': ALIGN_CLIENT,
-            'sp_l': 6,
-            'sp_r': 6,
-            'sp_t': 6,
-            'sp_b': 6,
+            'color': pal['back'],
+            'font_color': pal['muted'],
             'on_click_dbl': 'module=cuda_statghost;cmd=outline_jump;',
         })
         self._h_side_list = dlg_proc(h, DLG_CTL_HANDLE, index=n)
-        if self._h_side_list:
-            listbox_proc(self._h_side_list, LISTBOX_THEME)
-            listbox_proc(self._h_side_list, LISTBOX_SET_ITEM_H, index=22)
-        icon = os.path.join(_png_dir(), 'statghost_24.png')
+        self._ensure_side_il()
+        self._side_icon_idx = self._fill_imagelist(self._h_side_il, 16)
+        # Child of scrollbox must be Align=None + explicit h: LCL AutoScroll
+        # skips aligned controls, so ALIGN_TOP/CLIENT never shows the vert
+        # bar (Win32 + gtk2). Pattern: cuda_testing_canvas_proc / dlg_proc
+        # test_scrollbox (absolute x/y/w/h).
+        n = dlg_proc(h, DLG_CTL_ADD, 'scrollbox')
+        dlg_proc(h, DLG_CTL_PROP_SET, index=n, prop={
+            'name': 'grid_scroll',
+            'align': ALIGN_CLIENT,
+            'border': False,
+            'color': pal['back'],
+        })
+        n = dlg_proc(h, DLG_CTL_ADD, 'panel')
+        dlg_proc(h, DLG_CTL_PROP_SET, index=n, prop={
+            'name': 'grid',
+            'p': 'grid_scroll',
+            'align': ALIGN_NONE,
+            'x': 0,
+            'y': 0,
+            'w': 200,
+            'h': 1,
+            'h_min': 1,
+            'a_l': ('', '['),
+            'a_r': ('', ']'),
+            'sp_l': 2,
+            'sp_r': 2,
+            'sp_t': 2,
+            'sp_b': 2,
+            'color': pal['back'],
+        })
+        self._fill_side_grid()
+        self._apply_side_visibility()
+        icon = os.path.join(_png_dir(), '24px', 'statghost_24.png')
+        if not os.path.isfile(icon):
+            icon = os.path.join(_png_dir(), 'statghost_24.png')
         ok = app_proc(PROC_SIDEPANEL_ADD_DIALOG, (TITLE, h, icon))
         print('STATghost side: dlg=%s ADD_DIALOG=%s' % (h, ok))
         if not ok:
             msg_status(PLUGIN + ': side tab — ADD_DIALOG failed')
             return
+        # Docking changes client size — size after the side viewport exists.
+        self._refresh_side_scroll()
         self._side_ready = True
 
     def jump_outline_selection(self):
         """Double-click on side list: jump to outline line (skip status hdr)."""
         if not self._h_side_list or not self._outline_items:
             return
-        idx = None
-        for name in ('LISTBOX_GET_ITEM_INDEX', 'LISTBOX_GET_INDEX', 'LISTBOX_GET_SEL'):
-            try:
-                const = getattr(__import__('cudatext', fromlist=[name]), name)
-                idx = listbox_proc(self._h_side_list, const)
-                break
-            except Exception:
-                continue
+        prop = dlg_proc(self._h_dlg, DLG_CTL_PROP_GET, name='status') or {}
+        idx = prop.get('val')
         if idx is None:
             return
         try:
@@ -807,65 +1266,127 @@ class Chrome:
         msg_status(PLUGIN + ': outline → L' + str(line + 1))
 
     def _palette(self):
+        """Same UI tokens as ToolbarMain / ATFlatTheme (formmain_themes.inc)."""
         font = _ui_color('ButtonFont', _rgb(0x90, 0x90, 0x90))
-        back = _ui_color('EdTextBg', _ui_color('TabBg', _rgb(0x2A, 0x2A, 0x2A)))
-        card = _ui_color('TabBg', _ui_color('ButtonBg', _rgb(0x38, 0x38, 0x38)))
+        muted = _ui_color('TabFont', font)
+        back = _ui_color('TabBg', _ui_color('EdTextBg', _rgb(0x2A, 0x2A, 0x2A)))
+        face = _ui_color('ButtonBgPassive', _ui_color('ButtonBg', back))
+        border = _ui_color('ButtonBorderPassive', _rgb(0x55, 0x55, 0x55))
+        cr, cg, cb = icontint.theme_rgb(prefs.get_icons_fg())
+        hdr_band = _hdr_band_bg(back, face, border)
         return {
             'font': font,
-            'muted': _rgb(0x88, 0x88, 0x88),
+            'muted': muted,
+            'caption': _rgb(cr, cg, cb),
             'back': back,
-            'hdr': back,
-            'card': card,
+            'face': face,
+            'hdr_band': hdr_band,
+            'border': border,
             'run': _rgb(0x4C, 0xAF, 0x50),
             'arm': _rgb(0xE6, 0xA8, 0x17),
             'stop': _rgb(0xC0, 0x5A, 0x5A),
         }
 
-    def _apply_side_visibility(self):
-        """Show/hide side-tab actions from the shared chrome.show list."""
-        if not self._side_btns:
+    def _apply_side_theme(self):
+        """Retint side form / cards / TAT toolbars after THEME_UI."""
+        if not self._h_dlg:
             return
-        show = set(prefs.get_chrome_show())
-        for name, hb in self._side_btns.items():
+        pal = self._palette()
+        try:
+            dlg_proc(self._h_dlg, DLG_PROP_SET, prop={'color': pal['back']})
+        except Exception:
+            pass
+        self._ctl_theme('grid_scroll', pal['back'])
+        self._ctl_theme('grid', pal['back'])
+        for name in self._grid_ctl_names:
+            if name.startswith('grid_hdr_band_'):
+                self._ctl_theme(name, pal['hdr_band'])
+            elif name.startswith('grid_hdr_'):
+                self._ctl_theme(
+                    name, pal['hdr_band'], pal['muted'], font_style='b',
+                )
+            elif name.startswith('grid_rule_'):
+                self._ctl_theme(name, pal['border'])
+            elif name.startswith('gl_'):
+                self._ctl_theme(name, pal['back'], pal['caption'])
+            elif name.startswith('gt_'):
+                continue
+            else:
+                self._ctl_theme(name, pal['back'])
+        for h_bar in self._grid_bars:
+            self._theme_bar(h_bar)
+        self._polish_grid_keys()
+        self._ctl_theme('status_band', pal['back'])
+        self._ctl_theme('status', pal['back'], pal['muted'])
+
+    def _set_status_band(self, lines):
+        """Show a compact TabBg outline strip, or hide the empty island."""
+        if not self._h_dlg:
+            return
+        pal = self._palette()
+        if not lines:
             try:
-                button_proc(hb, BTN_SET_VISIBLE, name in show)
+                dlg_proc(self._h_dlg, DLG_CTL_PROP_SET, name='status_band', prop={
+                    'vis': False,
+                    'h': 0,
+                    'color': pal['back'],
+                })
             except Exception:
                 pass
+            return
+        h = min(STATUS_H_MAX, len(lines) * STATUS_LINE_H + 6)
+        if h < STATUS_LINE_H + 6:
+            h = STATUS_LINE_H + 6
+        try:
+            dlg_proc(self._h_dlg, DLG_CTL_PROP_SET, name='status_band', prop={
+                'vis': True,
+                'h': h,
+                'color': pal['back'],
+            })
+            dlg_proc(self._h_dlg, DLG_CTL_PROP_SET, name='status', prop={
+                'items': '\t'.join(lines),
+                'color': pal['back'],
+                'font_color': pal['muted'],
+            })
+        except Exception:
+            pass
+
+    def _apply_side_visibility(self):
+        """Show/hide side-tab actions from the shared chrome.show list."""
+        if not self._grid_btns:
+            return
+        show = set(prefs.get_chrome_show())
+        for name, hb in self._grid_btns.items():
+            vis = name in show
+            try:
+                button_proc(hb, BTN_SET_VISIBLE, vis)
+            except Exception:
+                pass
+            cap_name = self._grid_cap_labels.get(name)
+            if cap_name:
+                try:
+                    dlg_proc(self._h_dlg, DLG_CTL_PROP_SET, name=cap_name, prop={
+                        'vis': vis,
+                    })
+                except Exception:
+                    pass
 
     def _refresh_side(self, running, armed):
-        if 'arm' in self._side_btns:
-            button_proc(
-                self._side_btns['arm'], BTN_SET_TEXT,
-                'Armed' if armed else 'Idle',
-            )
-            button_proc(
-                self._side_btns['arm'], BTN_SET_IMAGEINDEX,
-                self._side_icon_idx.get('armed' if armed else 'arm', -1),
-            )
-        if 'host' in self._side_btns:
-            button_proc(
-                self._side_btns['host'], BTN_SET_TEXT,
-                'Quit' if running else 'Start',
-            )
-            button_proc(
-                self._side_btns['host'], BTN_SET_IMAGEINDEX,
-                self._side_icon_idx.get('kill' if running else 'host', -1),
-            )
+        arm_cap = 'Armed' if armed else 'Idle'
+        host_cap = 'Quit' if running else 'Start'
+        arm_idx = self._side_icon_idx.get('armed' if armed else 'arm', -1)
+        host_idx = self._side_icon_idx.get('kill' if running else 'host', -1)
+        mode = prefs.get_grid_label()
+        if 'arm' in self._grid_btns:
+            if mode == 'below':
+                self._sync_grid_caption('arm', arm_cap)
+            button_proc(self._grid_btns['arm'], BTN_SET_IMAGEINDEX, arm_idx)
+        if 'host' in self._grid_btns:
+            if mode == 'below':
+                self._sync_grid_caption('host', host_cap)
+            button_proc(self._grid_btns['host'], BTN_SET_IMAGEINDEX, host_idx)
         if not self._h_side_list:
             return
-        if running:
-            lines = [
-                'HOST    running',
-                'ARM     Armed' if armed else 'ARM     Idle',
-            ]
-        else:
-            lines = [
-                'HOST    stopped',
-                'ARM     —',
-            ]
-        lines.append(_mid_ellipsis(host.find_exe() or '(not found — Config)', 42))
-        lines.append('— outline (dbl-click) —')
-        self._outline_hdr = len(lines)
         self._outline_items = []
         try:
             from cudatext import ed as _ed
@@ -878,16 +1399,20 @@ class Chrome:
             self._outline_items = sgoutline.collect_outline(_gl, nlines)
         except Exception:
             self._outline_items = []
+        if not self._outline_items:
+            if self._side_lines:
+                self._side_lines = None
+            self._outline_hdr = 0
+            self._set_status_band(())
+            return
+        lines = ['— outline —']
+        self._outline_hdr = 1
         for it in self._outline_items:
             lines.append(sgoutline.format_caption(it, width=40))
-        if not self._outline_items:
-            lines.append('(no sections / functions)')
         if lines == self._side_lines:
             return
         self._side_lines = list(lines)
-        listbox_proc(self._h_side_list, LISTBOX_DELETE_ALL)
-        for line in lines:
-            listbox_proc(self._h_side_list, LISTBOX_ADD, text=line)
+        self._set_status_band(lines)
 
     def _start_timer(self):
         if self._timer:

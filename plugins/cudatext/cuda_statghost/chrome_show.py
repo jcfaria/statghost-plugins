@@ -1,4 +1,5 @@
 # Shared toolbar / side-tab / Plugins-menu visibility (pure — no CudaText).
+# Canonical contract: shared/CHROME.md (extract to shared/ on second host GO).
 # One show-list, one nest tree, same action ids / same relative order.
 # Menu, toolbar and side tab all use parent + children (NESTS).
 
@@ -299,7 +300,7 @@ def filter_side_actions(side_rows, show_keys):
 
 
 def side_keys(show_keys=None):
-    """Side-tab action ids: same ids / order / nests as the main toolbar."""
+    """Collapsed toolbar ids for the current chrome.show set."""
     if show_keys is None:
         wanted = set(DEFAULT_SHOW)
     else:
@@ -308,3 +309,121 @@ def side_keys(show_keys=None):
             return ()
         wanted = set(parse_show(','.join(keys), default=()))
     return collapse_keys(tuple(k for k in ACTION_KEYS if k in wanted))
+
+
+GRID_COLS = 3
+
+
+# Analytic side grid: one button per action, grouped by nest families.
+GRID_GROUPS = (
+    ('cfg', 'arm', 'host'),
+    ('send', 'function', 'above', 'below', 'chunk'),
+    ('source', 'srcsel', 'setwd'),
+    ('inspect', 'ls', 'str', 'names', 'plot', 'help', 'head', 'tail'),
+    ('clear', 'close_graphics', 'remove_objects', 'clear_all'),
+    ('assign', 'pipe', 'outline'),
+)
+GRID_GROUP_TITLES = (
+    'Host', 'Send', 'Source', 'Inspect', 'Clear', 'Edit',
+)
+# Short keypad captions — equal cells; full hint stays on the button.
+GRID_CAP = {
+    'cfg': 'Config',
+    'arm': 'Idle',
+    'host': 'Start',
+    'send': 'Send',
+    'function': 'Func',
+    'above': 'Above',
+    'below': 'Below',
+    'chunk': 'Chunk',
+    'source': 'Source',
+    'srcsel': 'Sel',
+    'setwd': 'setwd',
+    'inspect': 'Print',
+    'ls': 'ls',
+    'str': 'str',
+    'names': 'names',
+    'plot': 'plot',
+    'help': 'help',
+    'head': 'head',
+    'tail': 'tail',
+    'clear': 'Clear',
+    'close_graphics': 'g.off',
+    'remove_objects': 'rm',
+    'clear_all': 'all',
+    'assign': '<-',
+    'pipe': 'pipe',
+    'outline': 'out',
+}
+
+
+# Keypad cell min-width: longest GRID_CAP × em × slack.
+# Same 20% rule as Config nav (_TREE_SLACK). Keypad font is ~9px so
+# GRID_EMU_CHAR is 7 (Config tree uses 8).
+GRID_CAP_SLACK = 1.20
+GRID_EMU_CHAR = 7
+GRID_CELL_MIN = 36  # icon-tier floor; below mode grows with captions
+
+
+def grid_cell_w(caps=None):
+    """Min keypad cell width from the longest caption + 20%.
+
+    Dynamic: a longer GRID_CAP (or a test override) widens every cell
+    so neighbours like Source|Sel stay distinct without a fixed px guess.
+    """
+    vals = caps if caps is not None else GRID_CAP.values()
+    n = max((len(str(c)) for c in vals), default=1)
+    return max(GRID_CELL_MIN, int(round(n * GRID_EMU_CHAR * GRID_CAP_SLACK)))
+
+
+# Side keypad captions: default below = names without widening the deck.
+# icon = glyphs only (hover hint).
+GRID_LABEL_DEFAULT = 'below'
+GRID_LABELS = ('below', 'icon')
+
+
+def parse_grid_label(raw):
+    """Clamp chrome.grid_label — empty / junk → below."""
+    key = (raw or '').strip().lower()
+    aliases = {
+        'under': 'below',
+        'vert': 'below',
+        'vertical': 'below',
+        'only': 'icon',
+        'icons': 'icon',
+        'horz': 'icon',
+        'horiz': 'icon',
+        'side': 'icon',
+        'beside': 'icon',
+    }
+    key = aliases.get(key, key)
+    if key in GRID_LABELS:
+        return key
+    return GRID_LABEL_DEFAULT
+
+
+def grid_keys():
+    """Every plugin action — analytic deck does not collapse nests."""
+    return ACTION_KEYS
+
+
+def grid_plan(keys=None, cols=GRID_COLS):
+    """Hierarchical rows for the side-tab analytic keypad.
+
+    ('hdr', title) then ('row', (key, …)) per GRID_GROUPS family.
+    """
+    if cols < 1:
+        cols = GRID_COLS
+    if keys is None:
+        wanted = set(ACTION_KEYS)
+    else:
+        wanted = {k for k in ACTION_KEYS if k in set(keys)}
+    plan = []
+    for title, group in zip(GRID_GROUP_TITLES, GRID_GROUPS):
+        part = tuple(k for k in group if k in wanted)
+        if not part:
+            continue
+        plan.append(('hdr', title))
+        for i in range(0, len(part), cols):
+            plan.append(('row', part[i:i + cols]))
+    return tuple(plan)

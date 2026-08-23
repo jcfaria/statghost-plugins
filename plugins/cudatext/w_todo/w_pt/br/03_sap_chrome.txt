@@ -1,0 +1,151 @@
+================================================================================
+SAP -- Padrão Chrome STATghost (replicação multi-editor)
+================================================================================
+Estado: VP-CH-1..4 GO+CODE (CudaText); VP-CH-5 REGISTO; VP-CH-6 GO+CODE;
+  VP-CH-7 checklist em shared/CHROME.md
+Atualizado: 2026-08-22 (doc canónico + contrato grade analítica)
+Prioridade: um registo de ações, três superfícies — mesmos ids em todo host
+Branch CODE: `work` (este companion `jcfaria/statghost-plugins`)
+Origem: dono 2026-08-22 — documentar padrão acordado após workbar (01) e
+  TF da grade analítica na aba lateral
+CPR: 04_cpr_chrome.txt (VP-CH-*)
+Relacionados: 01_sap_workbar.txt (ninhos Tinn); shared/CHROME.md (EN canónico);
+  D29 (EDITOR-BRIDGE); VP-EB-1 / EB-1b chrome já BOK
+Decisões: D29 [P] (receptor; plugins finos; sem widget Console/Plot/Explorer)
+Siglas: CHROME, VP-CH, ACTION_KEYS, NESTS, GRID_CAP
+EN twin: ../../w_en/03_sap_chrome.txt
+Canónico: `shared/CHROME.md`
+CODE referência: `plugins/cudatext/cuda_statghost/chrome_show.py`
+
+**LEMA:** Keep this project as simple and effective as possible!
+
+================================================================================
+0. NOME E ÂMBITO
+================================================================================
+Definir como **todo** host STATghost expõe as mesmas ações: ninhos
+menu/toolbar, grade analítica lateral e checklist Config — um contrato,
+três superfícies.
+
+Este SAP é política **agnóstica de host**. CudaText é a implementação de
+referência (`chrome.py`, `chrome_show.py`, `config.py`). O SAP workbar (01)
+cobre o recorte Tinn-R_D → Send/Source/Inspect/Clear; este pack cobre
+**onde e como** essas ações aparecem nas superfícies e em editores futuros.
+
+STATghost continua **receptor**. O plugin nunca embute Console, Plot ou
+Explorer — só disparadores e tokens de clipboard (D29).
+
+================================================================================
+1. OBJETIVO
+================================================================================
+ - **Um contrato:** mesmo `action_id`, ordem relativa, árvore `NESTS` em
+   todo host.
+ - **Três superfícies:** menu/toolbar (ninhos sintéticos), aba lateral
+   (grade analítica, sem colapso de ninhos), Config (árvore por domínio).
+ - **Registo gradual:** cada ação nova = uma entrada em `chrome_show.py`
+   até extrair para `shared/`.
+ - **Tema automático:** faixas e glifos a partir de tokens + `pick_fg_rgb`.
+ - **Pronto para replicar:** GO do segundo host → extrair contrato; só
+   adaptadores por host.
+
+================================================================================
+2. UTILIZADOR
+================================================================================
+Sala de aula **intensiva**: o aluno escreve no editor e **permanece** lá.
+Menu e toolbar compactos (ninhos). A aba lateral é um **teclado** — cada
+ação visível de uma vez, agrupada por família (Host, Send, Source, Inspect,
+Clear, Edit). Config controla visibilidade sem reaprender ids por superfície.
+
+================================================================================
+3. MODELO (DECIDIDO)
+================================================================================
+A) **Superfícies**
+
+  | Superfície       | Comportamento de ninho                  |
+  |------------------|-----------------------------------------|
+  | Menu / toolbar   | Send▾ Source▾ Inspect▾ Clear▾; colapsa  |
+  | Aba lateral      | Faixas + grade 3 col.; sem colapso    |
+  | Config           | Árvore por domínio; checklist chrome.show |
+
+B) **Fluxo do registo** (ação nova)
+
+  ACTION_KEYS → NESTS (se filho) → GRID_GROUPS / GRID_CAP →
+  DEFAULT_SHOW ou opt-in `chrome.show` → widgets do host.
+
+C) **Linguagem visual** (TF lab CudaText)
+
+  - Faixas: `_hdr_band_bg`, TabFont negrito maiúsculas, sem ícones na faixa.
+  - Células: ícone + `GRID_CAP`, contraste `icons_fg` auto, hint no hover.
+  - Cor semântica só em glifos arm/host.
+
+D) **Tema**
+
+  - Fundos de TabBg / ButtonBgPassive / TabFont.
+  - `pick_fg_rgb(auto)` para glifos e legendas; fallback só se tokens
+    colapsarem.
+  - Claro/escuro; gtk2 e Win32.
+
+E) **Extrair** (REGISTO até GO do segundo host)
+
+  `chrome_contract`, `icons_fg`, `protocol`, `rword` → `shared/`.
+  Por host: CompactChrome, AnalyticPanel, ThemeBridge.
+
+F) **Prefs Config**
+
+  `chrome.show`, `grid_label` (below/icon/beside), `icons_fg`
+  (auto/light/dark/theme), `grid_cols=3` futuro.
+
+================================================================================
+4. DENTRO / FORA
+================================================================================
+DENTRO (CH-1..4, CudaText):
+  - `chrome_show.py`: ACTION_KEYS, NESTS, GRID_*, grid_plan, parse_show.
+  - Ninhos sintéticos menu/toolbar; aba lateral só grade analítica
+    (dono 2026-08-22).
+  - Faixas derivadas do tema; icons_fg auto.
+  - Testes unitários (`test_unit.py` grid_plan, parse_show, colapso).
+
+DENTRO (CH-6):
+  - Checklist chrome.show no Config; prefs grid_label e icons_fg.
+
+DENTRO (CH-7, só doc):
+  - Checklist novo host em `shared/CHROME.md`.
+
+FORA (este SAP):
+  - Marca por host (“CudaText R”).
+  - Segundo registo ou reordenação por superfície.
+  - Colapso de ninhos na grade analítica lateral.
+  - Cinzas hardcoded como caminho principal de tema.
+  - Copy-paste do contrato em cada host sem extrair para `shared/`.
+
+================================================================================
+5. RISCOS
+================================================================================
+ - Deriva: ordem menu ≠ ordem grade ≠ checklist Config.
+ - Lacunas de tokens gtk2 vs Win32 (testar ambos).
+ - Aba lateral confundida com segunda toolbar (deve ser grade plana).
+ - Extrair `shared/` cedo demais antes de um segundo host consumir.
+ - Confundir SAP workbar (recorte Tinn) com SAP chrome (contrato de superfície).
+
+================================================================================
+6. PRÓXIMOS PASSOS
+================================================================================
+ 1. Segundo host (VS Code REGISTO) — validar checklist contra CHROME.md.
+ 2. VP-CH-5: extrair `chrome_contract` quando esse host tiver GO.
+ 3. Opcional: pref `grid_cols` + passagem ícones 16/24/32 na grade lateral.
+ 4. Manter journal 01_sap_workbar cruzado quando ações de ninho mudarem.
+
+================================================================================
+JOURNAL
+================================================================================
+  2026-08-22  Dono: GO documentar padrão Chrome STATghost para replicação
+              multi-editor. Canónico `shared/CHROME.md`; packs SAP/CPR 03/04.
+              Acordado: um contrato três superfícies; registo em chrome_show;
+              grade analítica lateral nunca colapsa ninhos; tema automático;
+              extrair para shared/ no GO do segundo host.
+  2026-08-22  CODE grade analítica na aba já live (substitui faixa sintética
+              lateral de 2026-08-21). Menu/toolbar mantêm ninhos — ver
+              journal 01_sap_workbar.
+
+================================================================================
+FIM SAP chrome
+================================================================================

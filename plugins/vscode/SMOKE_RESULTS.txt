@@ -1,0 +1,75 @@
+STATghost VS Code extension — SMOKE RESULTS
+============================================
+Date: 2026-08-22 (autonomous agent run)
+Machine: Windows 11 lab (JCF)
+Repo: statghost-plugins
+STATGHOST_EXE: C:\Users\jcfaria\Documents\Github\statghost\src\_out\statghost.exe
+
+ENVIRONMENT SETUP (autonomous)
+----------------------------
+[x] STATghost started (was not running) — PID 29200
+[x] Cursor opened on workspace statghost-plugins via cursor CLI
+[x] STATGHOST_EXE env set for Python harnesses
+[x] CudaText-jcf plugin junction refreshed (install_lab.ps1 / restart_lab.ps1)
+
+AUTOMATED — RAN AND PASSED
+--------------------------
+CudaText unit (plugins/cudatext/cuda_statghost/test_unit.py)
+  64 tests OK
+
+CudaText functional / clipboard bridge (test_functional.py)
+  7 tests OK — live STATghost, Windows clipboard (win32)
+  Covers: host up, ARM, EVAL→marker file, nonce rerun, collapse wrap,
+  source(.paths[4]), sample extract 1+1, CLEAR control token
+
+CudaText workbar gentle (test_workbar.py, default cycle)
+  15 run OK, 3 skipped (plot/help need STATGHOST_WORKBAR_TF=full;
+  cuda Send layer skipped unless STATGHOST_WORKBAR_TF=cuda)
+  Layer A static: nests, glyphs, install.inf, rword payloads
+  Layer B live SG: ls/print/str/names/head/tail/graphics_off/send/setwd/clear
+
+VS Code unit (npm run test:unit)
+  23 tests OK — chromeContract, iconsFg, protocol
+
+VS Code extension-host integration (npm test)
+  Exit 0 — activate jcfaria.statghost-vscode, 6 commands registered:
+  statghost.send, statghost.arm, statghost.host, statghost.cfg,
+  statghost.clear, statghost.inspect
+
+CLIPBOARD BRIDGE SMOKE (live STATghost)
+---------------------------------------
+Protocol: #. STATGHOST:ARM / EVAL (same as plugins/vscode/src/bridge.ts)
+Harness: test_functional.py + test_workbar.py Layer B (live SG)
+clip.R path: %TEMP%\statghost_<pid>\clip.R  (pid 29200 this run)
+Result: PASS — ARM, EVAL, EVAL_KEEP semantics, CLEAR, slot4 source verified
+
+AUTOMATED — RAN, SKIPPED OR FAILED
+----------------------------------
+test_production.py
+  SKIPPED — requires wmctrl + python-xlib (Linux GUI automation only)
+
+test_workbar.py STATGHOST_WORKBAR_TF=cuda (CudaText Send hotkey / on_cli)
+  FAILED — plugin Send did not put "1 + 1" into clip.R
+  Root cause: unattended Windows agent cannot drive CudaText focus reliably;
+  -p=cuda_statghost#send_selection and simulated Ctrl+Enter did not fire
+  send_selection against the hello.R tab (clip.R unchanged).
+  Manual TF: open 01_hello.R in CudaText-jcf, Arm STATghost, Ctrl+Enter on line 7.
+
+VS Code extension visible / GUI
+  NOT AUTOMATED (no computer-use / webview driver in agent)
+  - Activity bar analytic panel render, glyph tint, theme bands
+  - Click Send in editor title / panel → clipboard
+  - Reload Window after VSIX install (Cursor has no headless reload CLI)
+
+BUGFIXES APPLIED THIS RUN (test harness, not extension)
+-------------------------------------------------------
+plugins/cudatext/cuda_statghost/test_workbar.py
+  - Prefer CudaText-jcf exe over upstream CudaText clone on Windows
+  - Win32: do not require filename in main window caption (stays "CudaText")
+  - Running-process path no longer overrides lab jcf binary
+
+COMMIT
+------
+Not performed (owner did not request).
+
+END SMOKE RESULTS

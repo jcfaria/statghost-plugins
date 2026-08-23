@@ -336,6 +336,158 @@ class TestChromeShow(unittest.TestCase):
         top = tuple(r[0] for r in nested)
         self.assertEqual(keys, top)
 
+    def test_grid_plan_all_actions_three_cols(self):
+        plan = chrome_show.grid_plan()
+        keys = []
+        hdrs = []
+        for kind, payload in plan:
+            if kind == 'hdr':
+                hdrs.append(payload)
+                continue
+            self.assertEqual(kind, 'row')
+            self.assertGreaterEqual(len(payload), 1)
+            self.assertLessEqual(len(payload), chrome_show.GRID_COLS)
+            keys.extend(payload)
+        self.assertEqual(tuple(keys), chrome_show.ACTION_KEYS)
+        self.assertEqual(tuple(hdrs), chrome_show.GRID_GROUP_TITLES)
+        send = ('send', 'function', 'above', 'below', 'chunk')
+        self.assertIn(('hdr', 'Send'), plan)
+        self.assertIn(('row', send[:3]), plan)
+        self.assertIn(('row', send[3:]), plan)
+
+    def test_grid_plan_filters_and_drops_empty_groups(self):
+        plan = chrome_show.grid_plan(('send', 'function', 'clear'))
+        self.assertEqual(
+            plan,
+            (
+                ('hdr', 'Send'),
+                ('row', ('send', 'function')),
+                ('hdr', 'Clear'),
+                ('row', ('clear',)),
+            ),
+        )
+        self.assertEqual(chrome_show.grid_keys(), chrome_show.ACTION_KEYS)
+
+    def test_grid_label_default_is_below(self):
+        self.assertEqual(chrome_show.GRID_LABEL_DEFAULT, 'below')
+        self.assertEqual(chrome_show.parse_grid_label(''), 'below')
+        self.assertEqual(chrome_show.parse_grid_label(None), 'below')
+        self.assertEqual(chrome_show.parse_grid_label('junk'), 'below')
+        self.assertEqual(chrome_show.parse_grid_label('below'), 'below')
+        self.assertEqual(chrome_show.parse_grid_label('icon'), 'icon')
+        self.assertEqual(chrome_show.parse_grid_label('beside'), 'icon')
+        self.assertEqual(chrome_show.parse_grid_label('under'), 'below')
+        self.assertEqual(
+            chrome_show.GRID_LABELS,
+            ('below', 'icon'),
+        )
+        here = os.path.dirname(os.path.abspath(__file__))
+        with open(os.path.join(here, 'prefs.py'), encoding='utf-8') as fh:
+            prefs_txt = fh.read()
+        self.assertIn('def get_grid_label', prefs_txt)
+        self.assertIn('def set_grid_label', prefs_txt)
+        self.assertIn("'chrome', 'grid_label'", prefs_txt)
+        self.assertIn('cs.GRID_LABEL_DEFAULT', prefs_txt)
+
+    def test_grid_cell_w_is_longest_cap_plus_20pct(self):
+        longest = max(len(c) for c in chrome_show.GRID_CAP.values())
+        expect = max(
+            chrome_show.GRID_CELL_MIN,
+            int(round(longest * chrome_show.GRID_EMU_CHAR * chrome_show.GRID_CAP_SLACK)),
+        )
+        self.assertEqual(chrome_show.grid_cell_w(), expect)
+        self.assertGreaterEqual(chrome_show.grid_cell_w(), chrome_show.GRID_CELL_MIN)
+        # Dynamic: a longer caption widens every cell.
+        grown = chrome_show.grid_cell_w(['Sel', 'VeryLongCaption'])
+        self.assertGreater(grown, chrome_show.grid_cell_w(['Sel', 'Source']))
+        here = os.path.dirname(os.path.abspath(__file__))
+        with open(os.path.join(here, 'chrome.py'), encoding='utf-8') as fh:
+            chrome_txt = fh.read()
+        metrics_fn = chrome_txt.split('def _grid_metrics', 1)[1].split(
+            'def _grid_cell_props', 1,
+        )[0]
+        self.assertIn('grid_cell_w()', metrics_fn)
+        bind_fn = chrome_txt.split('def _grid_bind_row', 1)[1].split(
+            'def _apply_grid_label', 1,
+        )[0]
+        self.assertIn("'sp_r': 3", bind_fn)
+
+    def test_grid_groups_partition_actions(self):
+        flat = []
+        for group in chrome_show.GRID_GROUPS:
+            flat.extend(group)
+        self.assertEqual(tuple(flat), chrome_show.ACTION_KEYS)
+        self.assertEqual(len(flat), len(set(flat)))
+        self.assertEqual(
+            set(chrome_show.GRID_CAP),
+            set(chrome_show.ACTION_KEYS),
+        )
+
+    def test_side_chrome_source_analytic_grid(self):
+        here = os.path.dirname(os.path.abspath(__file__))
+        with open(os.path.join(here, 'chrome.py'), encoding='utf-8') as fh:
+            text = fh.read()
+        self.assertNotIn("'name': 'bar'", text)
+        self.assertIn("'name': 'grid_scroll'", text)
+        self.assertIn("DLG_CTL_ADD, 'scrollbox'", text)
+        self.assertIn("'name': 'grid'", text)
+        self.assertNotIn('chrome_show.side_plan', text)
+        self.assertNotIn('bar_row_', text)
+        self.assertNotIn('def _fill_side_row', text)
+        self.assertNotIn('def _bar_add', text)
+        self.assertNotIn('def _clear_side_bar', text)
+        self.assertIn('IMAGELIST_CREATE', text)
+        self.assertIn('_h_side_il', text)
+        self.assertIn('_grid_bars', text)
+        self.assertIn('ALIGN_NONE', text)
+        self.assertIn('def _size_side_grid', text)
+        self.assertIn('def _refresh_side_scroll', text)
+        self.assertIn('_grid_content_h', text)
+        self.assertIn("'name': 'status'", text)
+        self.assertIn("'name': 'status_band'", text)
+        self.assertIn("DLG_CTL_ADD, 'listbox'", text)
+        self.assertNotIn("DLG_CTL_ADD, 'listbox_ex'", text)
+        self.assertNotIn('LISTBOX_THEME', text)
+        self.assertIn('def _set_status_band', text)
+        self.assertIn("'icon': (26, 20)", text)
+        self.assertIn("'below': (36, GRID_ICON_STRIP_H + GRID_CAP_H)", text)
+        self.assertIn('GRID_CAP_H', text)
+        self.assertIn('GRID_ICON_STRIP_H', text)
+        self.assertIn('ALIGN_BOTTOM', text)
+        self.assertIn('def _fill_side_grid', text)
+        self.assertIn('chrome_show.grid_plan(prefs.get_chrome_show())', text)
+        grid_fn = text.split('def _grid_add', 1)[1].split(
+            'def _create_toolbar', 1,
+        )[0]
+        self.assertIn('BTN_SET_DATA1', grid_fn)
+        self.assertNotIn("DLG_CTL_ADD, 'button_ex'", grid_fn)
+        self.assertIn("cmd=' + method", grid_fn)
+        self.assertIn('_grid_hdr', grid_fn)
+        self.assertIn('_grid_bind_row', grid_fn)
+        self.assertIn('grid_card_', grid_fn)
+        self.assertIn('reversed(families)', grid_fn)
+        self.assertIn('a_r', grid_fn)
+        self.assertIn("startswith('gl_')", text)
+        self.assertIn('def _sync_grid_caption', text)
+        self.assertIn('BTNKIND_ICON_ONLY', grid_fn)
+        self.assertIn('BTN_SET_BOLD', text)
+        self.assertIn("'caption'", text)
+        self.assertIn('get_grid_label', grid_fn)
+        self.assertIn("mode == 'below'", grid_fn)
+        self.assertIn('TOOLBAR_SET_VERTICAL', grid_fn)
+        self.assertIn('def _apply_grid_label', text)
+        self.assertIn('def _freeze_side', text)
+        self.assertIn('DLG_LOCK', text)
+        self.assertIn('DLG_UNLOCK', text)
+        self.assertIn('BTN_SET_HINT', grid_fn)
+        self.assertIn('TOOLBAR_THEME', grid_fn)
+        self.assertIn('_theme_bar', grid_fn)
+        self.assertIn('_apply_side_theme', text)
+        self.assertIn('ButtonBgPassive', text)
+        self.assertIn('TabBg', text)
+        self.assertIn('theme_rgb', text)
+        self.assertIn('self._apply_side_theme()', text)
+
     def test_menu_path_nests(self):
         self.assertEqual(chrome_show.menu_path('cfg'), 'Config')
         self.assertEqual(chrome_show.menu_path('send'), 'Send\\Send')
@@ -401,6 +553,23 @@ class TestChromeShow(unittest.TestCase):
         self.assertIn("'name': 'keep_hint'", text)
         self.assertIn("'name': 'host_exe'", text)
         self.assertIn("'name': 'host_det'", text)
+        self.assertIn("'name': 'grid_label'", text)
+        self.assertIn("'name': 'chrome_grid'", text)
+        self.assertIn("'cap': 'Apply'", text)
+        self.assertIn("'name': 'btn_apply'", text)
+        self.assertIn("kind == 'apply'", text)
+        self.assertIn("_CB % 'apply'", text)
+        self.assertIn('ALIGN_BOTTOM', text)
+        self.assertIn("a_r': ('btn_ok', '[')", text)
+        self.assertIn('def _snapshot_prefs', text)
+        self.assertIn('def _restore_prefs', text)
+        self.assertIn('rebuild_chrome', text)
+        chrome = text.split('def _fill_chrome', 1)[1].split('def _fill_host', 1)[0]
+        self.assertIn('ALIGN_TOP', chrome)
+        self.assertIn('a_r', chrome)
+        self.assertIn('_GRID_LABEL_ITEMS', chrome)
+        self.assertIn('below  (caption under icon)', text)
+        self.assertNotIn('dlg_custom', chrome)
         send = text.split('def _fill_send', 1)[1].split('def _fill_chrome', 1)[0]
         self.assertIn("'ex3': True", send)
         host_fn = text.split('def _fill_host', 1)[1].split('def show_config', 1)[0]
@@ -478,21 +647,24 @@ class TestIconFg(unittest.TestCase):
     def test_force_modes(self):
         bg = (0x1C, 0x1C, 0x1C)
         font = (0x44, 0x44, 0x44)
-        self.assertEqual(icons_fg.pick_fg_rgb('light', font, bg), (0xE8, 0xE8, 0xE8))
-        self.assertEqual(icons_fg.pick_fg_rgb('dark', font, bg), (0x20, 0x20, 0x20))
+        self.assertEqual(icons_fg.pick_fg_rgb('light', font, bg), (0xC4, 0xC4, 0xC4))
+        self.assertEqual(icons_fg.pick_fg_rgb('dark', font, bg), (0x3A, 0x3A, 0x3A))
+        self.assertEqual(icons_fg.pick_fg_rgb('gray', font, bg), (0x8A, 0x8A, 0x8A))
         self.assertEqual(icons_fg.pick_fg_rgb('theme', font, bg), font)
 
     def test_auto_rejects_dark_on_dark(self):
         bg = (0x1C, 0x1C, 0x1C)
         font = (0x44, 0x44, 0x44)
         fg = icons_fg.pick_fg_rgb('auto', font, bg)
-        self.assertEqual(fg, (0xE8, 0xE8, 0xE8))
+        self.assertEqual(fg, icons_fg.FG_WHITE)
         self.assertGreaterEqual(icons_fg.contrast_ratio(fg, bg), 3.0)
 
     def test_auto_keeps_good_buttonfont(self):
         bg = (0x1C, 0x1C, 0x1C)
         font = (0xE0, 0xE0, 0xE0)
-        self.assertEqual(icons_fg.pick_fg_rgb('auto', font, bg), font)
+        fg = icons_fg.pick_fg_rgb('auto', font, bg)
+        self.assertGreaterEqual(icons_fg.contrast_ratio(fg, bg), 3.0)
+        self.assertGreater(icons_fg.rel_luma(fg), 0.5)
 
 
 class TestOutline(unittest.TestCase):

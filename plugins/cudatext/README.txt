@@ -19,6 +19,11 @@ Lab Linux (portable CudaText sibling):
   bash plugins/cudatext/install_lab.sh
   # or: CUDA_ROOT=/path/to/CudaText bash plugins/cudatext/install_lab.sh
 
-Then restart CudaText. STATghost must be running and Armed for eval.
+Lab Windows 11 (CudaText-jcf — owner dev machine):
+  powershell -File plugins/cudatext/install_lab.ps1
+  # or: $env:CUDA_ROOT='...\CudaText-jcf\app\bin\windows-amd64'
+  #     pwsh plugins/cudatext/install_lab.ps1
+
+Then restart CudaText (cuda_jcf/run.sh or CudaText-jcf\cudatext.exe).
 
 Do not embed STATghost Console|Plot|Explorer UI here (D29).

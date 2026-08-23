@@ -160,6 +160,14 @@ JORNAL
               sem rm/plot/help/Config). on_cli allowlist.
   2026-08-16  Aba: coluna vertical, wrap off (ls/str não partilham linha).
   2026-08-16  Dono: menu / toolbar / aba partilham a mesma árvore.
+  2026-08-22  Dono: aba = só grade analítica; menu/toolbar sintéticos.
+              GO CODE.
+  2026-08-21  Dono: corpo da aba = grade analítica 3 colunas (todas
+              as ações); cima mantém os ninhos. px 16/24/32 depois.
+              (revogado 2026-08-22.)
+  2026-08-21  Revisão do modelo: manter os ids actuais como contrato
+              multi-editor. WB-3/WB-4 ficam REGISTO (sem CODE). Opcional
+              depois: getwd. Tinn-R_D HEAD `2dcf37e` (TBRMain igual).
   2026-08-16  Workbar Send live no Linux (X11), não só Windows.
   2026-08-16  Win10+Linux reunificados: sibling_dir ignora a pasta host;
               Send da workbar lê keys.json (fallback Ctrl+Enter).

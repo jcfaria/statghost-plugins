@@ -1,0 +1,467 @@
+{
+  "name": "statghost-vscode",
+  "displayName": "STATghost",
+  "description": "STATghost host for VS Code / Cursor — chrome contract, analytic side panel, clipboard bridge",
+  "version": "0.1.0",
+  "publisher": "jcfaria",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "STATghost",
+      "properties": {
+        "statghost.chrome.show": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Comma-separated action ids visible on toolbar and side panel. Empty = classroom default (`DEFAULT_SHOW` in chrome contract)."
+        },
+        "statghost.chrome.gridLabel": {
+          "type": "string",
+          "enum": [
+            "below",
+            "icon"
+          ],
+          "default": "below",
+          "description": "Side panel cell layout: caption below icon, or icon only."
+        },
+        "statghost.icons.fg": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "light",
+            "dark",
+            "gray",
+            "theme"
+          ],
+          "default": "auto",
+          "markdownDescription": "Glyph colour. `auto` picks closed white / gray / graphite by contrast. `light` / `dark` / `gray` force a palette. `theme` uses the editor font colour."
+        },
+        "statghost.icons.size": {
+          "type": "number",
+          "enum": [
+            16,
+            24,
+            32
+          ],
+          "default": 16,
+          "description": "Side panel glyph size (px). Cell padding and captions scale with this tier."
+        },
+        "statghost.send.keepFocus": {
+          "type": "boolean",
+          "default": true,
+          "description": "Use EVAL_KEEP so STATghost restores the editor after eval."
+        },
+        "statghost.host.exe": {
+          "type": "string",
+          "default": "",
+          "description": "Path to statghost.exe (optional; sibling clone and PATH also searched)."
+        }
+      }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "statghost",
+          "title": "STATghost",
+          "icon": "media/statghost.svg"
+        }
+      ]
+    },
+    "views": {
+      "statghost": [
+        {
+          "type": "webview",
+          "id": "statghost.analyticPanel",
+          "name": "STATghost",
+          "icon": "media/statghost.svg"
+        }
+      ]
+    },
+    "submenus": [
+      {
+        "id": "statghost.menu.send",
+        "label": "Send"
+      },
+      {
+        "id": "statghost.menu.source",
+        "label": "Source"
+      },
+      {
+        "id": "statghost.menu.inspect",
+        "label": "Inspect"
+      },
+      {
+        "id": "statghost.menu.clear",
+        "label": "Clear"
+      }
+    ],
+    "commands": [
+      {
+        "command": "statghost.cfg",
+        "title": "Config",
+        "category": "STATghost",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "command": "statghost.arm",
+        "title": "Toggle Arm/Idle",
+        "category": "STATghost",
+        "icon": "$(debug-start)"
+      },
+      {
+        "command": "statghost.host",
+        "title": "Start/Quit STATghost",
+        "category": "STATghost",
+        "icon": "$(plug)"
+      },
+      {
+        "command": "statghost.send",
+        "title": "Send",
+        "category": "STATghost",
+        "icon": "$(play)"
+      },
+      {
+        "command": "statghost.function",
+        "title": "Function",
+        "category": "STATghost"
+      },
+      {
+        "command": "statghost.above",
+        "title": "Above",
+        "category": "STATghost"
+      },
+      {
+        "command": "statghost.below",
+        "title": "Below",
+        "category": "STATghost"
+      },
+      {
+        "command": "statghost.chunk",
+        "title": "Chunk",
+        "category": "STATghost"
+      },
+      {
+        "command": "statghost.source",
+        "title": "Source",
+        "category": "STATghost",
+        "icon": "$(export)"
+      },
+      {
+        "command": "statghost.srcsel",
+        "title": "Src sel",
+        "category": "STATghost"
+      },
+      {
+        "command": "statghost.setwd",
+        "title": "setwd",
+        "category": "STATghost"
+      },
+      {
+        "command": "statghost.inspect",
+        "title": "Print",
+        "category": "STATghost",
+        "icon": "$(output)"
+      },
+      {
+        "command": "statghost.ls",
+        "title": "ls()",
+        "category": "STATghost"
+      },
+      {
+        "command": "statghost.str",
+        "title": "str()",
+        "category": "STATghost"
+      },
+      {
+        "command": "statghost.names",
+        "title": "names()",
+        "category": "STATghost"
+      },
+      {
+        "command": "statghost.plot",
+        "title": "plot()",
+        "category": "STATghost"
+      },
+      {
+        "command": "statghost.help",
+        "title": "Help",
+        "category": "STATghost"
+      },
+      {
+        "command": "statghost.head",
+        "title": "head()",
+        "category": "STATghost"
+      },
+      {
+        "command": "statghost.tail",
+        "title": "tail()",
+        "category": "STATghost"
+      },
+      {
+        "command": "statghost.clear",
+        "title": "Clear",
+        "category": "STATghost",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "statghost.close_graphics",
+        "title": "graphics.off",
+        "category": "STATghost"
+      },
+      {
+        "command": "statghost.remove_objects",
+        "title": "rm all",
+        "category": "STATghost"
+      },
+      {
+        "command": "statghost.clear_all",
+        "title": "Clear all",
+        "category": "STATghost"
+      },
+      {
+        "command": "statghost.assign",
+        "title": "Insert <-",
+        "category": "STATghost"
+      },
+      {
+        "command": "statghost.pipe",
+        "title": "Insert pipe",
+        "category": "STATghost"
+      },
+      {
+        "command": "statghost.outline",
+        "title": "Outline…",
+        "category": "STATghost"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "statghost.cfg",
+          "when": "true"
+        },
+        {
+          "command": "statghost.arm",
+          "when": "true"
+        },
+        {
+          "command": "statghost.host",
+          "when": "true"
+        },
+        {
+          "command": "statghost.send",
+          "when": "true"
+        },
+        {
+          "command": "statghost.function",
+          "when": "true"
+        },
+        {
+          "command": "statghost.above",
+          "when": "true"
+        },
+        {
+          "command": "statghost.below",
+          "when": "true"
+        },
+        {
+          "command": "statghost.chunk",
+          "when": "true"
+        },
+        {
+          "command": "statghost.source",
+          "when": "true"
+        },
+        {
+          "command": "statghost.srcsel",
+          "when": "true"
+        },
+        {
+          "command": "statghost.setwd",
+          "when": "true"
+        },
+        {
+          "command": "statghost.inspect",
+          "when": "true"
+        },
+        {
+          "command": "statghost.ls",
+          "when": "true"
+        },
+        {
+          "command": "statghost.str",
+          "when": "true"
+        },
+        {
+          "command": "statghost.names",
+          "when": "true"
+        },
+        {
+          "command": "statghost.plot",
+          "when": "true"
+        },
+        {
+          "command": "statghost.help",
+          "when": "true"
+        },
+        {
+          "command": "statghost.head",
+          "when": "true"
+        },
+        {
+          "command": "statghost.tail",
+          "when": "true"
+        },
+        {
+          "command": "statghost.clear",
+          "when": "true"
+        },
+        {
+          "command": "statghost.close_graphics",
+          "when": "true"
+        },
+        {
+          "command": "statghost.remove_objects",
+          "when": "true"
+        },
+        {
+          "command": "statghost.clear_all",
+          "when": "true"
+        },
+        {
+          "command": "statghost.assign",
+          "when": "true"
+        },
+        {
+          "command": "statghost.pipe",
+          "when": "true"
+        },
+        {
+          "command": "statghost.outline",
+          "when": "true"
+        }
+      ],
+      "editor/title": [
+        {
+          "submenu": "statghost.menu.send",
+          "group": "navigation@90"
+        },
+        {
+          "submenu": "statghost.menu.source",
+          "group": "navigation@91"
+        },
+        {
+          "submenu": "statghost.menu.inspect",
+          "group": "navigation@92"
+        },
+        {
+          "submenu": "statghost.menu.clear",
+          "group": "navigation@93"
+        },
+        {
+          "command": "statghost.cfg",
+          "group": "navigation@94"
+        },
+        {
+          "command": "statghost.arm",
+          "group": "navigation@95"
+        },
+        {
+          "command": "statghost.host",
+          "group": "navigation@96"
+        }
+      ],
+      "statghost.menu.send": [
+        {
+          "command": "statghost.send"
+        },
+        {
+          "command": "statghost.function"
+        },
+        {
+          "command": "statghost.above"
+        },
+        {
+          "command": "statghost.below"
+        },
+        {
+          "command": "statghost.chunk"
+        }
+      ],
+      "statghost.menu.source": [
+        {
+          "command": "statghost.source"
+        },
+        {
+          "command": "statghost.srcsel"
+        },
+        {
+          "command": "statghost.setwd"
+        }
+      ],
+      "statghost.menu.inspect": [
+        {
+          "command": "statghost.inspect"
+        },
+        {
+          "command": "statghost.ls"
+        },
+        {
+          "command": "statghost.str"
+        },
+        {
+          "command": "statghost.names"
+        },
+        {
+          "command": "statghost.plot"
+        },
+        {
+          "command": "statghost.help"
+        },
+        {
+          "command": "statghost.head"
+        },
+        {
+          "command": "statghost.tail"
+        }
+      ],
+      "statghost.menu.clear": [
+        {
+          "command": "statghost.clear"
+        },
+        {
+          "command": "statghost.close_graphics"
+        },
+        {
+          "command": "statghost.remove_objects"
+        },
+        {
+          "command": "statghost.clear_all"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "test": "node ./out/test/runTest.js",
+    "test:unit": "node --test out/test/chromeContract.test.js out/test/gridMetrics.test.js out/test/iconsFg.test.js out/test/protocol.test.js out/test/statement.test.js",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/test-electron": "^2.4.0",
+    "typescript": "^5.5.0"
+  }
+}

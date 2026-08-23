@@ -58,6 +58,17 @@ def _is_under(child, ancestor):
         return False
 
 
+def _looks_like_editor_root(path):
+    """True if *path* is the CudaText tree (app/py or the binary)."""
+    if not path:
+        return False
+    return (
+        os.path.isdir(os.path.join(path, 'app', 'py'))
+        or os.path.isfile(os.path.join(path, 'app', 'cudatext.exe'))
+        or os.path.isfile(os.path.join(path, 'app', 'cudatext'))
+    )
+
+
 def sibling_dir(name):
     """Walk up from this file until a sibling directory *name* exists.
 
@@ -66,6 +77,9 @@ def sibling_dir(name):
 
     Skip a candidate that *contains this file*: on Windows, plugins/cudatext
     matches sibling name CudaText (case-insensitive) and is the host folder.
+
+    Win clone `Github/CudaText/CudaText/app` — unwrap one same-named child
+    when the sibling itself is only a wrapper (no app/py).
     """
     here = os.path.dirname(os.path.realpath(__file__))
     cur = here
@@ -75,7 +89,12 @@ def sibling_dir(name):
             break
         cand = os.path.join(parent, name)
         if os.path.isdir(cand) and not _is_under(here, cand):
-            return os.path.abspath(cand)
+            path = os.path.abspath(cand)
+            if name.lower() == 'cudatext' and not _looks_like_editor_root(path):
+                inner = os.path.join(path, 'CudaText')
+                if os.path.isdir(inner) and _looks_like_editor_root(inner):
+                    return os.path.abspath(inner)
+            return path
         cur = parent
     return None
 

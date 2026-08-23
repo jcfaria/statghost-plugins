@@ -3,7 +3,7 @@ SAP -- Plugin CudaText: barra de trabalho (Tinn-R_D → chrome)
 ================================================================================
 Estado: VP-WB-1 GO+CODE (ninhos essenciais); VP-WB-2 stash de glifos;
   VP-WB-3 REGISTO; VP-WB-4 Rnoweb REGISTO; VP-WB-5 R-control GO+CODE
-Atualizado: 2026-08-16 (R-control: conforto = controlar o SG sem Alt-Tab)
+Atualizado: 2026-08-22 (aba: só grade analítica; menu/toolbar sintéticos)
 Prioridade: compactar a barra do plugin sem inchamento Tinn
 Branch CODE: `work` (este companion `jcfaria/statghost-plugins`)
 Origem: Tinn-R_D `TBRMain` (ufrmMain.dfm, Toolbar2000) + pedido dono
@@ -16,7 +16,7 @@ Siglas: WORKBAR, VP-WB, TBRMain
 EN twin: ../../w_en/01_sap_workbar.txt
 Skill: `.cursor/skills/sap-cpr-workbar/SKILL.md`
 Referência: `C:\Users\jcfaria\Documents\GitHub\Tinn-R_D` branch `work`
-  HEAD `6126062` (pull 2026-08-16)
+  HEAD `2dcf37e` (pull 2026-08-21; recorte TBRMain inalterado)
 
 **LEMA:** Keep this project as simple and effective as possible!
 
@@ -98,9 +98,11 @@ B) **Ninhos (toolbar Cuda)** — clique = pai; seta = filhos:
   Default top-level (WB-5):
     Config | Arm/Idle | Start/Quit | Send▾ | Source▾ | Inspect▾ | Clear▾
 
-C) **Aba lateral:** **a mesma árvore** da toolbar (pai + seta com
-   filhos; uma coluna; sem wrap quando a aba alarga). Mesmos ids /
-   ordem relativa. O menu Plugins usa os mesmos submenus.
+C) **Aba lateral:** uma zona (dono 2026-08-22). **Só** grade analítica
+   3 colunas — faixas por família (Host, Send, Source, …), um botão por
+   ação visível (`chrome.show`, mesmo conjunto que toolbar/menu). Sem
+   faixa sintética em cima. Ícones 16/24/32 depois. Menu Plugins e
+   toolbar mantêm ninhos sintéticos (Send▾ / Source▾ / …).
 
 D) **Assign / pipe / Outline:** extras EB-1b, **não** estão na TBRMain.
    Continuam opt-in planos (Config). Ninho Insert = VP-WB-3.
@@ -284,6 +286,22 @@ JORNAL
               vertical (`TOOLBAR_SET_VERTICAL`, wrap off); ordem =
               barra principal expandida.
   2026-08-16  Dono: a mesma árvore (menu, toolbar e aba).
+  2026-08-22  Dono: aba lateral = **só** grade analítica (faixas +
+              botões); menu/toolbar mantêm ninhos sintéticos. GO CODE.
+  2026-08-21  Dono: corpo da aba = grade analítica 3 colunas (todas
+              as ações); cima mantém os ninhos sintéticos. px depois.
+              (revogado 2026-08-22 — faixa sintética da aba removida.)
+  2026-08-21  Revisão do modelo (Tinn TBRMain vs plugin, multi-editor):
+              send/inspect/clear de aula está completo. Mesmos ids a
+              manter entre editores: cfg/arm/host + árvores Send/Source/
+              Inspect/Clear + assign/pipe/outline. Só REGISTO (espera
+              GO): Weave▾ sweave / knit_latex / knit_html (WB-4);
+              ninho Insert▾ em volta dos flats já existentes (WB-3).
+              REGISTO opcional depois: getwd (Tinn Get WorkDir). Fica
+              específico do editor: compilar .tex/.html, file_open do
+              artefacto, hotkeys, DATA1 vs APIs do host. Continua OUT:
+              widget Explorer, Packages, Rterm/Rgui, knit2pdf,
+              edit/fix/ESC.
 
 ================================================================================
 FIM SAP workbar

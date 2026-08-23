@@ -1,0 +1,150 @@
+================================================================================
+SAP -- STATghost Chrome pattern (multi-editor replication)
+================================================================================
+Status: VP-CH-1..4 GO+CODE (CudaText); VP-CH-5 RECORD; VP-CH-6 GO+CODE;
+  VP-CH-7 checklist in shared/CHROME.md
+Updated: 2026-08-22 (canonical doc + analytic grid contract)
+Priority: one action registry, three surfaces — same ids on every host
+CODE branch: `work` (this companion `jcfaria/statghost-plugins`)
+Origin: owner 2026-08-22 — document pattern agreed after workbar (01) and
+  side-tab analytic grid TF
+CPR: 04_cpr_chrome.txt (VP-CH-*)
+Related: 01_sap_workbar.txt (Tinn nests); shared/CHROME.md (canonical EN);
+  D29 (EDITOR-BRIDGE); VP-EB-1 / EB-1b chrome already BOK
+Decisions: D29 [P] (receiver; thin plugins; no Console/Plot/Explorer widget)
+Glossary: CHROME, VP-CH, ACTION_KEYS, NESTS, GRID_CAP
+PT twin: ../../w_pt/br/03_sap_chrome.txt
+Canonical: `shared/CHROME.md`
+Reference CODE: `plugins/cudatext/cuda_statghost/chrome_show.py`
+
+**MOTTO:** Keep this project as simple and effective as possible!
+
+================================================================================
+0. NAME AND SCOPE
+================================================================================
+Define how **every** STATghost host exposes the same actions: menu/toolbar
+nests, side analytic grid, and Config checklist — one contract, three
+surfaces.
+
+This SAP is **host-agnostic** policy. CudaText is the reference
+implementation (`chrome.py`, `chrome_show.py`, `config.py`). Workbar SAP
+(01) covers the Tinn-R_D → Send/Source/Inspect/Clear cut; this pack covers
+**where and how** those actions render across surfaces and future editors.
+
+STATghost stays the **receiver**. The plugin never embeds Console, Plot, or
+Explorer — only triggers and clipboard tokens (D29).
+
+================================================================================
+1. GOAL
+================================================================================
+ - **One contract:** same `action_id`, relative order, `NESTS` tree on
+   every host.
+ - **Three surfaces:** menu/toolbar (synthetic nests), side panel (analytic
+   grid, no nest collapse), Config (tree by domain).
+ - **Gradual registry:** each new action = one entry in `chrome_show.py`
+   until extract to `shared/`.
+ - **Theme automatic:** bands and glyphs from editor tokens + `pick_fg_rgb`.
+ - **Replication ready:** second host GO → extract contract, per-host
+   adapters only.
+
+================================================================================
+2. USER
+================================================================================
+**Intensive** classroom: the student writes in the editor and **stays**.
+Menu and toolbar stay compact (nests). The side tab is a **keypad** — every
+visible action at once, grouped by family (Host, Send, Source, Inspect,
+Clear, Edit). Config controls visibility without relearning ids per surface.
+
+================================================================================
+3. MODEL (DECIDED)
+================================================================================
+A) **Surfaces**
+
+  | Surface          | Nest behaviour                          |
+  |------------------|-----------------------------------------|
+  | Menu / toolbar   | Send▾ Source▾ Inspect▾ Clear▾; collapse |
+  | Side tab         | Family bands + 3-col grid; no collapse  |
+  | Config           | Domain tree; `chrome.show` checklist    |
+
+B) **Registry flow** (one new action)
+
+  ACTION_KEYS → NESTS (if child) → GRID_GROUPS / GRID_CAP →
+  DEFAULT_SHOW or `chrome.show` opt-in → host widgets.
+
+C) **Visual language** (CudaText lab TF)
+
+  - Bands: `_hdr_band_bg`, TabFont bold uppercase, no band icons.
+  - Cells: icon + `GRID_CAP`, `icons_fg` auto contrast, hint on hover.
+  - Semantic colour only on arm/host state glyphs.
+
+D) **Theme**
+
+  - Backgrounds from TabBg / ButtonBgPassive / TabFont tokens.
+  - `pick_fg_rgb(auto)` for glyphs and captions; fallback only when tokens
+    collapse.
+  - Light/dark; gtk2 and Win32.
+
+E) **Extract** (RECORD until second host GO)
+
+  `chrome_contract`, `icons_fg`, `protocol`, `rword` → `shared/`.
+  Per host: CompactChrome, AnalyticPanel, ThemeBridge.
+
+F) **Config prefs**
+
+  `chrome.show`, `grid_label` (below/icon/beside), `icons_fg`
+  (auto/light/dark/theme), `grid_cols=3` future.
+
+================================================================================
+4. IN / OUT
+================================================================================
+IN (CH-1..4, CudaText):
+  - `chrome_show.py`: ACTION_KEYS, NESTS, GRID_*, grid_plan, parse_show.
+  - Menu/toolbar synthetic nests; side analytic grid only (owner 2026-08-22).
+  - Theme-derived bands; icons_fg auto.
+  - Unit tests (`test_unit.py` grid_plan, parse_show, collapse).
+
+IN (CH-6):
+  - Config chrome.show checklist; grid_label and icons_fg prefs.
+
+IN (CH-7, doc only):
+  - `shared/CHROME.md` new-host checklist.
+
+OUT (this SAP):
+  - Per-host branding (“CudaText R”).
+  - Second registry or reorder per surface.
+  - Nest collapse on the side analytic panel.
+  - Hardcoded greys as the primary theme path.
+  - Copy-paste contract into each host without `shared/` extract.
+
+================================================================================
+5. RISKS
+================================================================================
+ - Drift: menu order ≠ grid order ≠ Config checklist.
+ - gtk2 vs Win32 theme token gaps (test both).
+ - Side tab mistaken for a second toolbar (must stay flat grid).
+ - Premature `shared/` extract before a second host can consume it.
+ - Confusing workbar SAP (Tinn cut) with chrome SAP (surface contract).
+
+================================================================================
+6. NEXT STEPS
+================================================================================
+ 1. Second host (VS Code RECORD) — validate checklist against CHROME.md.
+ 2. VP-CH-5: extract `chrome_contract` when that host has GO.
+ 3. Optional: `grid_cols` pref + 16/24/32 icon pass on side grid.
+ 4. Keep 01_sap_workbar journal cross-linked when nest actions change.
+
+================================================================================
+JOURNAL
+================================================================================
+  2026-08-22  Owner: GO document STATghost Chrome pattern for multi-editor
+              replication. Canonical `shared/CHROME.md`; SAP/CPR packs 03/04.
+              Agreed: one contract three surfaces; registry in chrome_show;
+              analytic side grid never collapses nests; theme automatic;
+              extract to shared/ on second host GO.
+  2026-08-22  Side tab analytic grid CODE already live (supersedes 2026-08-21
+              synthetic strip on side). Menu/toolbar keep nests — see
+              01_sap_workbar journal.
+
+================================================================================
+END SAP chrome
+================================================================================

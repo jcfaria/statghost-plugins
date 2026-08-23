@@ -1,0 +1,35 @@
+---
+description: Windows dev lab — CudaText-jcf only (not upstream CudaText install)
+alwaysApply: true
+---
+
+# CudaText lab — Windows 11 (owner JCF)
+
+On **this machine**, plugin work and TF always target the local **CudaText-jcf**
+clone — never the upstream/original CudaText tree as the primary dev host.
+
+| Role | Path |
+|------|------|
+| Plugin **source** (edit here) | `statghost-plugins/plugins/cudatext/cuda_statghost/` |
+| **Dev** CudaText (run / TF) | `~/Documents/Github/CudaText-jcf/app/bin/windows-amd64/cudatext.exe` |
+| **Dev** plugin slot | `CudaText-jcf/app/bin/windows-amd64/py/cuda_statghost` → junction to source |
+| Upstream CudaText (optional) | `~/Documents/Github/CudaText/CudaText/app/py/cuda_statghost` |
+
+**Do**
+
+- Install / refresh the dev slot with `plugins/cudatext/install_lab.ps1`
+  (`powershell -File …` on this machine).
+- After **plugin Python** changes on Windows: **restart CudaText-jcf yourself**
+  (`powershell -File plugins/cudatext/restart_lab.ps1`) — do **not** ask the
+  owner to close/reopen the editor.
+- Copy or junction **into CudaText-jcf** when deploying from this repo.
+
+**Don't**
+
+- Treat `CudaText/CudaText/…` as the default dev target on Windows.
+- Edit plugin files only under `CudaText-jcf/…/py/cuda_statghost` when a stale
+  copy exists — fix the junction first (`install_lab.ps1`).
+- Assume `%APPDATA%/CudaText` is the lab (not used here).
+- Tell the owner to restart CudaText when you can run `restart_lab.ps1`.
+
+Linux lab unchanged: sibling portable tree + `cuda_jcf/run.sh` (see `README.md`).

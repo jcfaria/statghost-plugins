@@ -1,0 +1,135 @@
+================================================================================
+CPR -- Padrão Chrome STATghost (VP-CH-1..7; multi-editor)
+================================================================================
+Estado: VP-CH-1..4 GO+CODE (CudaText); VP-CH-5 PARCIAL (TS VS Code); VP-CH-6 GO+CODE;
+  VP-CH-7 DOC (checklist shared/CHROME.md)
+Atualizado: 2026-08-22 (padrão canónico documentado)
+Ordem: depois de VP-EB-1 / EB-1b e workbar VP-WB-1..5 (ninhos + R-control).
+  SAP Chrome trata superfícies; SAP workbar trata recorte Tinn.
+Prefixo: **VP-CH-*** (umbrella CHROME)
+SAP: 03_sap_chrome.txt
+Canónico: `shared/CHROME.md`
+Decisões: D29 (companion; hosts finos)
+EN twin: ../../w_en/04_cpr_chrome.txt
+Política: REGISTO até GO por VP. Lema: simple and effective.
+
+================================================================================
+VP-CH-1  Um contrato, três superfícies
+[x] GO [x] CODE [ ] TF
+================================================================================
+**GO 2026-08-22 (padrão); CODE live no CudaText.**
+
+IN:
+  - Mesmo `action_id`, ordem, `NESTS` em menu/toolbar, grade lateral, Config.
+  - Menu/toolbar: ninhos sintéticos; `collapse_nested_rows` na barra compacta.
+  - Aba lateral: só grade analítica — sem colapso de ninhos (dono 2026-08-22).
+FORA: Conjuntos de chaves diferentes por superfície; faixa lateral com pais.
+BOK: `chrome_show.py` + `chrome.py` AnalyticPanel; `test_unit.py`.
+Estado: GO+CODE — TF lab screenshots claro/escuro pendente.
+TF checklist:
+  [ ] Menu/toolbar: Send▾ / Source▾ / Inspect▾ / Clear▾
+  [ ] Aba lateral: faixas de família + um botão por ação visível
+  [ ] Checklist Config coincide com chaves visíveis na toolbar
+
+================================================================================
+VP-CH-2  Registo canónico de ações
+[x] GO [x] CODE [x] TF (unit)
+================================================================================
+IN: `ACTION_KEYS`, `NESTS`, `ACTION_METHODS`, `MENU_CAP`, `parse_show`,
+  `collapse_keys`, `grid_keys`.
+FORA: Registos duplicados por superfície do host.
+BOK: `python test_unit.py` (parse_show, nest_parent, collapse).
+Estado: GO+CODE.
+
+================================================================================
+VP-CH-3  Linguagem visual (grade analítica)
+[x] GO [x] CODE [ ] TF
+================================================================================
+IN: `GRID_GROUPS`, `GRID_GROUP_TITLES`, `GRID_CAP`, `grid_plan`;
+  `_hdr_band_bg`; `GRID_COLS=3`; modos `grid_label`.
+FORA: Ícones nos cabeçalhos de faixa; legendas negrito; cinzas fixos.
+BOK: testes grid_plan em `test_unit.py`; layout faixa + célula em chrome.py.
+Estado: GO+CODE — TF screenshot pendente.
+TF checklist:
+  [ ] Faixas: HOST/SEND/… maiúsculas, BG do tema
+  [ ] Células: ícone + GRID_CAP curto, hint no hover
+  [ ] Cor semântica só em ícones arm/host
+
+================================================================================
+VP-CH-4  Tema automático
+[x] GO [x] CODE [x] TF (unit)
+================================================================================
+IN: Tokens de tema (TabBg, ButtonBgPassive, TabFont); `icons_fg` +
+  `pick_fg_rgb(auto)`; gtk2 + Win32.
+FORA: Paleta cinza só de lab como caminho principal.
+BOK: `test_unit.py` icons_fg; TF manual claro/escuro.
+Estado: GO+CODE.
+
+================================================================================
+VP-CH-5  Extrair para shared/ (GO segundo host)
+[x] GO [~] CODE [ ] TF
+================================================================================
+IN: Mover `chrome_contract`, `icons_fg`, `protocol`, `rword` para `shared/`.
+FORA: Copy-paste por host sem módulo shared.
+Estado: **PARCIAL** — VS Code tem ports TS em `plugins/vscode/src/` (2026-08-22);
+  extract Python `shared/` pendente; CudaText continua em `chrome_show.py`.
+Dependências: VP-CH-1..4 estáveis; `shared/CHROME.md` canónico.
+
+================================================================================
+VP-CH-6  Prefs Config
+[x] GO [x] CODE [ ] TF
+================================================================================
+IN: `chrome.show`, `grid_label` (below/icon/beside), `icons_fg`
+  (auto/light/dark/theme).
+FORA: UI `grid_cols` (reservado — default 3 no código).
+BOK: `config.py` + `prefs.py`; testes unitários referenciam GRID_LABEL_DEFAULT.
+Estado: GO+CODE — TF diálogo Config em GPU fraca já protegido.
+
+================================================================================
+VP-CH-7  Checklist novo host
+[x] GO [x] DOC [ ] TF
+================================================================================
+IN: `shared/CHROME.md` §7 — menu, ninhos, painel analítico, Config, ícones,
+  testes unitários, screenshots claro/escuro.
+FORA: Marca específica do host ou segunda ordem de ações.
+Estado: GO+DOC (2026-08-22). TF por host quando o host entregar.
+
+================================================================================
+POLÍTICA / ORDEM
+================================================================================
+ - CH-1..4 + CH-6 = host referência CudaText BOK.
+ - CH-5 espera GO do segundo host — não extrair cedo demais.
+ - Ações workbar (WB-3 Insert, WB-4 Weave) entram no registo aqui quando
+   tiverem GO; mesmo fluxo ACTION_KEYS → NESTS → GRID_*.
+ - Skill `sap-cpr-workbar` continua dona das *ações* de ninho; este CPR trata
+   *superfícies*.
+
+================================================================================
+JOURNAL
+================================================================================
+  2026-08-22  SAP/CPR 03/04 abertos; `shared/CHROME.md` canónico.
+              Padrão: um contrato três superfícies; grade analítica nunca
+              colapsa ninhos; tema automático; extrair shared no segundo GO.
+  2026-08-22  CODE CudaText já alinha CH-1..4 e CH-6 (decisão grade lateral
+              2026-08-22). CH-7 checklist documentado.
+  2026-08-22  Host VS Code CODE (plugins/vscode/) — contrato chrome TS,
+              painel analítico, submenus, bridge protocol v0.1. CH-5 parcial
+              (ports TS; extract Python shared/ a seguir). TF lab + testes npm
+              pendem instalação Node.
+  2026-08-23  Consolidação AN — pipeline ícones shared/res (build_res.py,
+              contorno ls/rm/print, head/tail Flaticon); largura célula
+              (caption mais longo +20%), espaçamento ícone–caption por host;
+              painel VS Code transparente + borda fina; CudaText 65 + VS Code
+              31 testes unitários OK; restart_lab nos dois hosts.
+
+================================================================================
+PRÓXIMOS PASSOS
+================================================================================
+1. TF lab: screenshots claro/escuro (CH-1, CH-3).
+2. Host VS Code — **CODE entregue** (plugins/vscode/); npm compile + TF lab.
+3. VP-CH-5 extract Python para shared/ quando cuda importar sem rutura.
+4. Quando WB-3/WB-4 GO: estender registo; grade lateral apanha chaves novas.
+
+================================================================================
+FIM CPR chrome
+================================================================================

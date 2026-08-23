@@ -1,0 +1,46 @@
+STATghost Windows build report — 2026-08-22 (autonomous lab sync)
+================================================================
+
+Repo pulled
+-----------
+  Path:   c:\Users\jcfaria\Documents\Github\statghost
+  Branch: work
+  HEAD:   9f7a50b Merge branch 'work' of https://github.com/jcfaria/statghost into work
+  Remote: origin https://github.com/jcfaria/statghost (work + main updated to adda21e)
+
+  Note: local edits blocked the first pull (docs/News.md, docs/notas.txt,
+  src/umain.pas, …). Stashed as stash@{0} "autonomous-pull-20260822-1329"
+  before merge. Pop manually if those edits are still wanted.
+
+Build
+-----
+  Command: powershell -NoProfile -ExecutionPolicy Bypass -File
+           c:\Users\jcfaria\Documents\Github\statghost\src\build.ps1
+  Result:  OK (exit 0)
+  Warnings: 1 FPC warning in umain.pas (managed result var); 100 hints only.
+
+Binary
+------
+  GUI:    c:\Users\jcfaria\Documents\Github\statghost\src\_out\statghost.exe
+  Rhost:  c:\Users\jcfaria\Documents\Github\statghost\src\_out\statghost_rhost.exe
+  Size:   68,189,696 bytes (statghost.exe)
+  Built:  2026-08-22 13:29:44 local
+
+Plugin auto-detect (host.py)
+----------------------------
+  sibling_dir('statghost') resolves to the repo above (statghost-plugins and
+  statghost are siblings under Github\). _sibling_exe() →
+  statghost\src\_out\statghost.exe — no INI or env override required on this
+  machine.
+
+  Optional override: STATGHOST_EXE=<full path to statghost.exe>
+
+Tests (this session)
+--------------------
+  python test_unit.py  — 64 tests, OK (~11 s)
+  STATGHOST_EXE was set explicitly for the run; sibling auto-detect also OK.
+
+Not run here
+------------
+  test_functional.py / test_production.py / test_workbar.py — need a running
+  STATghost session + display/clipboard.

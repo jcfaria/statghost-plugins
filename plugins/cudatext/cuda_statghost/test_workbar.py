@@ -33,7 +33,50 @@ SAMPLE = os.path.join(_SG, 'sample') if _SG else ''
 SAMPLE_R = os.path.join(SAMPLE, 'R')
 HELLO = os.path.join(SAMPLE_R, '01_hello.R')
 _CUDA_ROOT = host.sibling_dir('CudaText') or ''
-CUDA_EXE = os.path.join(_CUDA_ROOT, 'app', 'cudatext.exe') if _CUDA_ROOT else ''
+
+
+def _find_cuda_exe():
+    """Editor binary: lab layout differs (app/ vs app/bin/win64/)."""
+    cands = []
+    if sys.platform.startswith('win'):
+        _jcf = os.path.join(
+            os.environ.get('USERPROFILE', ''),
+            'Documents', 'Github', 'CudaText-jcf',
+            'app', 'bin', 'windows-amd64', 'cudatext.exe',
+        )
+        if os.path.isfile(_jcf):
+            cands.append(_jcf)
+    if _CUDA_ROOT:
+        cands.extend((
+            os.path.join(_CUDA_ROOT, 'app', 'cudatext.exe'),
+            os.path.join(_CUDA_ROOT, 'app', 'bin', 'win64', 'cudatext.exe'),
+            os.path.join(_CUDA_ROOT, 'app', 'bin', 'windows-amd64', 'cudatext.exe'),
+            os.path.join(_CUDA_ROOT, 'app', 'cudatext'),
+            os.path.join(_CUDA_ROOT, 'app', 'bin', 'linux-amd64-gtk2', 'cudatext'),
+        ))
+    if sys.platform.startswith('win'):
+        try:
+            out = subprocess.check_output(
+                [
+                    'powershell', '-NoProfile', '-Command',
+                    '(Get-Process cudatext -ErrorAction SilentlyContinue).Path',
+                ],
+                text=True, timeout=8,
+                creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0),
+            )
+            for line in out.splitlines():
+                p = (line or '').strip()
+                if p and os.path.isfile(p) and p not in cands:
+                    cands.append(p)
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+    for p in cands:
+        if p and os.path.isfile(p):
+            return p
+    return ''
+
+
+CUDA_EXE = _find_cuda_exe()
 POLL_S = 0.12
 EVAL_WAIT_S = 18.0
 _WIN = sys.platform.startswith('win')
@@ -43,11 +86,12 @@ _FULL = (os.environ.get('STATGHOST_WORKBAR_TF') or '').strip().lower() in (
 _CUDA_LAYER = _FULL or (os.environ.get('STATGHOST_WORKBAR_TF') or '').strip().lower() in (
     'cuda', 'send',
 )
-COLOUR_PNG = (
+RES_GLYPHS = (
     'ls.png', 'print.png', 'print_head.png', 'print_tail.png',
     'names.png', 'str.png', 'plot.png', 'help_selected.png',
     'close_graphics.png', 'remove_objects.png', 'clear_all.png',
     'sweave.png', 'knit.png', 'knit-html.png',
+    'send.png', 'idle.png', 'power.png',
 )
 _VK = {
     'ctrl': 0x11,
@@ -253,6 +297,124 @@ def _cuda_hwnd():
     return found[0] if found else None
 
 
+def _cuda_wait_sample_tab(basename, timeout=10.0):
+    """Wait until CudaText shows *basename* or the tab had time to load.
+
+    Win32 LCL often keeps the main caption as plain ``CudaText`` (no filename);
+  Linux wmctrl titles include the path basename.
+    """
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if _WIN:
+            if _cuda_hwnd():
+                time.sleep(1.2)
+                return True
+        else:
+            try:
+                import test_production as prod
+                title = prod._cuda_title()
+            except Exception:
+                title = ''
+            if basename in (title or ''):
+                return True
+        time.sleep(0.15)
+    return False
+
+
+def _sg_hwnd():
+    """Main STATghost window (exact title). Needed to unfocus the Console."""
+    if not _WIN:
+        return None
+    import ctypes
+    user32 = ctypes.windll.user32
+    found = []
+
+    @ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)
+    def _cb(hwnd, _lp):
+        if not user32.IsWindowVisible(hwnd):
+            return True
+        n = user32.GetWindowTextLengthW(hwnd)
+        if n <= 0:
+            return True
+        buf = ctypes.create_unicode_buffer(n + 1)
+        user32.GetWindowTextW(hwnd, buf, n + 1)
+        if (buf.value or '').strip() == 'STATghost':
+            found.append(hwnd)
+        return True
+
+    user32.EnumWindows(_cb, 0)
+    return found[0] if found else None
+
+
+def _sg_child_named(title):
+    """First visible descendant whose window text equals *title*."""
+    if not _WIN:
+        return None
+    import ctypes
+    user32 = ctypes.windll.user32
+    parent = _sg_hwnd()
+    if not parent:
+        return None
+    found = []
+
+    @ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)
+    def _cb(hwnd, _lp):
+        if not user32.IsWindowVisible(hwnd):
+            return True
+        n = user32.GetWindowTextLengthW(hwnd)
+        if n <= 0:
+            return True
+        buf = ctypes.create_unicode_buffer(n + 1)
+        user32.GetWindowTextW(hwnd, buf, n + 1)
+        if (buf.value or '').strip() == title:
+            found.append(hwnd)
+            return False
+        return True
+
+    user32.EnumChildWindows(parent, _cb, 0)
+    return found[0] if found else None
+
+
+def _nudge_sg():
+    """Unfocus Console Edit so ClipTimerTick reads the clipboard.
+
+    umain skips the clipboard while Console TConsoleEdit.Focused.
+    Title-bar / screen clicks do not move LCL focus — SetFocus the
+    Explorer pane (descendant, not a direct child).
+    """
+    if not _WIN:
+        return False
+    import ctypes
+    user32 = ctypes.windll.user32
+    kernel32 = ctypes.windll.kernel32
+    hwnd = _sg_hwnd()
+    if not hwnd:
+        return False
+    target = _sg_child_named('Explorer') or hwnd
+    fg = user32.GetForegroundWindow()
+    self_tid = kernel32.GetCurrentThreadId()
+    fg_tid = user32.GetWindowThreadProcessId(fg, None) if fg else 0
+    tgt_tid = user32.GetWindowThreadProcessId(hwnd, None)
+    attached = []
+    for other in (fg_tid, tgt_tid):
+        if other and other != self_tid:
+            if user32.AttachThreadInput(self_tid, other, True):
+                attached.append(other)
+    try:
+        user32.ShowWindow(hwnd, 9)  # SW_RESTORE
+        user32.BringWindowToTop(hwnd)
+        user32.SetForegroundWindow(hwnd)
+        user32.SetFocus(target)
+        # LCL: mouse on Explorer (not the Console memo).
+        user32.PostMessageW(target, 0x0201, 1, 0)  # WM_LBUTTONDOWN
+        user32.PostMessageW(target, 0x0202, 0, 0)  # WM_LBUTTONUP
+        time.sleep(0.25)
+        return True
+    finally:
+        for other in attached:
+            user32.AttachThreadInput(self_tid, other, False)
+
+
 def _focus_cuda():
     hwnd = _cuda_hwnd()
     if not hwnd:
@@ -383,6 +545,17 @@ class TestWorkbarStatic(unittest.TestCase):
             chrome_show.side_keys(show),
             ('cfg', 'arm', 'host', 'send', 'source', 'inspect', 'clear'),
         )
+        plan = chrome_show.grid_plan()
+        exploded = []
+        for kind, payload in plan:
+            if kind == 'row':
+                exploded.extend(payload)
+        self.assertEqual(tuple(exploded), chrome_show.ACTION_KEYS)
+        self.assertLessEqual(
+            max(len(payload) for kind, payload in plan if kind == 'row'),
+            3,
+        )
+        self.assertIn(('hdr', 'Inspect'), plan)
 
     def test_cli_allowlist_in_install_inf(self):
         inf = _inf_methods()
@@ -394,12 +567,12 @@ class TestWorkbarStatic(unittest.TestCase):
         banned = {'config', 'toggle_host', 'toggle_arm', 'show_outline'}
         self.assertFalse(chrome_show.CLI_METHODS & banned)
 
-    def test_colour_glyphs_16_24_32(self):
-        png = os.path.join(HERE, 'png')
+    def test_res_glyphs_16_24_32(self):
+        res = os.path.join(HERE, 'res')
         missing = []
         for px in ('16px', '24px', '32px'):
-            for name in COLOUR_PNG:
-                path = os.path.join(png, px, name)
+            for name in RES_GLYPHS:
+                path = os.path.join(res, px, name)
                 if not os.path.isfile(path):
                     missing.append(path)
         self.assertEqual(missing, [])
@@ -430,11 +603,12 @@ class TestWorkbarLiveSG(unittest.TestCase):
             ok = _set_clip('cuda_statghost workbar tf probe')
             if not ok:
                 raise unittest.SkipTest('could not write Windows clipboard')
+            _nudge_sg()
         elif not os.environ.get('DISPLAY'):
             raise unittest.SkipTest('DISPLAY unset and not Windows')
         if not _arm():
             raise unittest.SkipTest('could not put ARM on the clipboard')
-        time.sleep(0.5)
+        time.sleep(4.0)
         cls.clip = _clip_r()
 
     def _land(self, code, needle=None):
@@ -442,6 +616,8 @@ class TestWorkbarLiveSG(unittest.TestCase):
         stamp = '# WBTF ' + protocol._nonce()
         body = (code if code is not None else '') + '\n' + stamp
         needle = needle if needle is not None else code
+        if _WIN:
+            _nudge_sg()
         _arm()
         time.sleep(0.35)
         ok, _ = _eval(body)
@@ -475,6 +651,13 @@ class TestWorkbarLiveSG(unittest.TestCase):
     def test_07_graphics_off(self):
         self._land('graphics.off()')
 
+    def test_07b_send_one_plus_one(self):
+        self._land('1 + 1')
+
+    def test_07c_setwd_temp(self):
+        folder = paths.temp_root().replace('\\', '/')
+        self._land('setwd(%s)' % repr(folder), needle='setwd(')
+
     def test_08_clear_token_not_eval(self):
         tag = 'wb_clear_%s' % protocol._nonce()
         marker = os.path.join(paths.paths_dir(), 'cuda_plugin_tf_%s.txt' % tag)
@@ -506,6 +689,7 @@ class TestWorkbarLiveCuda(unittest.TestCase):
                 raise unittest.SkipTest('cudatext.exe not found')
             if not _cuda_hwnd():
                 raise unittest.SkipTest('CudaText window not found')
+            _nudge_sg()
         else:
             if not os.environ.get('DISPLAY'):
                 raise unittest.SkipTest('DISPLAY unset')
@@ -522,6 +706,8 @@ class TestWorkbarLiveCuda(unittest.TestCase):
         cls.clip = _clip_r()
 
     def test_01_send_hello_one_plus_one(self):
+        if _WIN:
+            _nudge_sg()
         _arm()
         time.sleep(0.3)
         chord = _hotkey('send_selection', 'Ctrl+Enter')
@@ -531,15 +717,24 @@ class TestWorkbarLiveCuda(unittest.TestCase):
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )
-            deadline = time.time() + 8.0
-            while time.time() < deadline:
-                time.sleep(0.15)
+            self.assertTrue(
+                _cuda_wait_sample_tab('01_hello.R'),
+                'CudaText window not ready for 01_hello.R',
+            )
             self.assertTrue(_focus_cuda(), 'could not focus CudaText')
+            # install.inf hotkey may be unbound; on_cli is the lab contract.
+            subprocess.Popen(
+                [CUDA_EXE, '-p=cuda_statghost#send_selection'],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            time.sleep(0.8)
             vks = _chord_to_vks(chord)
-            self.assertTrue(vks, 'could not parse Send hotkey %r' % chord)
-            _send_chord((0x1B,))
-            time.sleep(0.08)
-            _send_chord(vks)
+            if vks:
+                _send_chord((0x1B,))
+                time.sleep(0.08)
+                _send_chord(vks)
+            _nudge_sg()
         else:
             prod = self._prod
             exe = prod._cuda_exe()

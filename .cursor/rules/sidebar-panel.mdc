@@ -1,0 +1,24 @@
+---
+description: STATghost side tab — analytic grid only (menu/toolbar stay nested)
+globs: plugins/cudatext/cuda_statghost/chrome*.py
+alwaysApply: false
+---
+
+# Side tab (aba STATghost)
+
+Canonical pattern: `shared/CHROME.md` (§1 surfaces, §3 visual language).
+
+One zone, owner 2026-08-22:
+
+**Analytic keypad** — family header (Host/Send/Source/Inspect/Clear/Edit)
++ **3 equal cells** (`a_l`/`a_r`, not wrap). Hairline between families.
+Short `GRID_CAP`; full hint on hover. Every shown action gets its own
+button (no nest collapse on the side tab). Clicks = toolbar `DATA1`.
+`chrome.show` filters which keys appear (same set as toolbar/menu).
+
+Menu Plugins + main toolbar stay **synthetic**: nest parents (Send▾ /
+Source▾ / Inspect▾ / Clear▾), parent click + arrow children.
+
+Icons 16/24/32 = later pass. Use the glyphs already on disk.
+
+Status/outline list stays a compact footer, not the green empty deck.

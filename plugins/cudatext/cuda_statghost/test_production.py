@@ -45,9 +45,15 @@ _KEYSYM = {
 
 
 def _cuda_exe():
+    if sys.platform.startswith('win'):
+        try:
+            import test_workbar as wb
+            return wb.CUDA_EXE or None
+        except Exception:
+            return None
     try:
         out = subprocess.check_output(['pgrep', '-ax', 'cudatext'], text=True)
-    except subprocess.CalledProcessError:
+    except (OSError, subprocess.CalledProcessError):
         out = ''
     for line in out.splitlines():
         parts = line.split(None, 1)
