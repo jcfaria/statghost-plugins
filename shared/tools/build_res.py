@@ -36,6 +36,10 @@ SOURCES = (
     os.path.join(REPO, 'plugins', 'cudatext', 'w_todo', 'icons'),
 )
 
+# Hand-crafted per-size masters: shared/src/<stem>/{16,24,32}.png
+# When present, used as-is instead of resizing the harvested PNG.
+EXACT_SRC = os.path.join(REPO, 'shared', 'src')
+
 HOST_COPIES = (
     os.path.join(REPO, 'plugins', 'cudatext', 'cuda_statghost', 'res'),
     os.path.join(REPO, 'plugins', 'vscode', 'media', 'res'),
@@ -57,7 +61,7 @@ Layout
   gray/16px|24px|32px   mid gray      #8A8A8A
   graphite/…            graphite      #3A3A3A
 
-Rebuild after changing a source PNG (shared/png, Tinn stash, …):
+Rebuild after changing a source PNG (shared/png, shared/src/<stem>/{16,24,32}.png, Tinn stash, …):
 
   python shared/tools/build_res.py
 
@@ -120,6 +124,18 @@ def _resize(im: Image.Image, px: int) -> Image.Image:
     return im.resize((px, px), resample)
 
 
+def _exact_mask(name: str, px: int) -> Image.Image | None:
+    stem = os.path.splitext(name)[0]
+    path = os.path.join(EXACT_SRC, stem, '%d.png' % px)
+    if not os.path.isfile(path):
+        return None
+    with Image.open(path) as raw:
+        mask = _to_mask(raw)
+    if mask.size != (px, px):
+        return _resize(mask, px)
+    return mask
+
+
 def _tint(mask: Image.Image, rgb) -> Image.Image:
     r, g, b = rgb
     a = mask.split()[3]
@@ -150,7 +166,9 @@ def main():
         with Image.open(src) as raw:
             mask = _to_mask(raw)
         for px in SIZES:
-            sized = _resize(mask, px)
+            sized = _exact_mask(name, px)
+            if sized is None:
+                sized = _resize(mask, px)
             sized.save(os.path.join(OUT, '%dpx' % px, name), 'PNG')
             for pal, rgb in PALETTES.items():
                 _tint(sized, rgb).save(

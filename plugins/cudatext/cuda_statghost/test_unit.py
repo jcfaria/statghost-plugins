@@ -389,6 +389,26 @@ class TestChromeShow(unittest.TestCase):
         self.assertIn("'chrome', 'grid_label'", prefs_txt)
         self.assertIn('cs.GRID_LABEL_DEFAULT', prefs_txt)
 
+    def test_grid_panel_min_w_locked_to_owner_lab(self):
+        self.assertEqual(chrome_show.GRID_PANEL_MIN_W, 150)
+        self.assertEqual(chrome_show.grid_panel_min_w(), 150)
+        self.assertGreaterEqual(
+            chrome_show.grid_panel_min_w(),
+            chrome_show.GRID_COLS * chrome_show.grid_cell_w(),
+        )
+        here = os.path.dirname(os.path.abspath(__file__))
+        with open(os.path.join(here, 'prefs.py'), encoding='utf-8') as fh:
+            prefs_txt = fh.read()
+        self.assertIn('def get_grid_panel_min_w', prefs_txt)
+        self.assertIn("'chrome', 'grid_panel_min_w'", prefs_txt)
+        with open(os.path.join(here, 'chrome.py'), encoding='utf-8') as fh:
+            chrome_txt = fh.read()
+        size_fn = chrome_txt.split('def _size_side_grid', 1)[1].split(
+            'def _fill_side_grid', 1,
+        )[0]
+        self.assertIn('_side_panel_min_w()', size_fn)
+        self.assertIn("'w_min': min_w", size_fn)
+
     def test_grid_cell_w_is_longest_cap_plus_20pct(self):
         longest = max(len(c) for c in chrome_show.GRID_CAP.values())
         expect = max(
@@ -411,6 +431,34 @@ class TestChromeShow(unittest.TestCase):
             'def _apply_grid_label', 1,
         )[0]
         self.assertIn("'sp_r': 3", bind_fn)
+
+    def test_grid_panel_min_w_formula_three_cells_plus_gutters(self):
+        cell = chrome_show.grid_cell_w()
+        cols = chrome_show.GRID_COLS
+        gutters = (
+            chrome_show.GRID_ROW_EDGE * 2
+            + (cols - 1) * chrome_show.GRID_ROW_GUTTER * 2
+            + chrome_show.GRID_SCROLL_PAD
+        )
+        expect = cols * cell + gutters
+        self.assertEqual(chrome_show.grid_panel_min_w_formula(), expect)
+        self.assertEqual(chrome_show.grid_panel_min_w_formula(cell), expect)
+        # Default below mode @ 16px icons: longest cap "Inspect".
+        self.assertEqual(expect, 174)
+        # Live floor is owner lab minimum, not the formula.
+        self.assertEqual(chrome_show.grid_panel_min_w(), 150)
+        self.assertLess(chrome_show.grid_panel_min_w(), expect)
+        here = os.path.dirname(os.path.abspath(__file__))
+        with open(os.path.join(here, 'chrome.py'), encoding='utf-8') as fh:
+            chrome_txt = fh.read()
+        self.assertIn('grid_panel_min_w', chrome_txt)
+        self.assertIn('def _side_panel_min_w', chrome_txt)
+        self.assertIn('def _apply_side_min_width', chrome_txt)
+        size_fn = chrome_txt.split('def _size_side_grid', 1)[1].split(
+            'def _fill_side_grid', 1,
+        )[0]
+        self.assertIn('_side_panel_min_w()', size_fn)
+        self.assertIn("'w_min': min_w", size_fn)
 
     def test_grid_groups_partition_actions(self):
         flat = []

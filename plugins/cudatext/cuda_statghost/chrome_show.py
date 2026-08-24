@@ -376,6 +376,46 @@ def grid_cell_w(caps=None):
     return max(GRID_CELL_MIN, int(round(n * GRID_EMU_CHAR * GRID_CAP_SLACK)))
 
 
+# Horizontal slack on the side keypad — mirrors chrome._grid_bind_row /
+# grid sp_l/sp_r. Used by grid_panel_min_w_formula() for reference only.
+GRID_ROW_EDGE = 4       # outer cell sp_l / sp_r
+GRID_ROW_GUTTER = 3     # between adjacent cells (sp_r + sp_l)
+GRID_SCROLL_PAD = 4     # grid panel sp_l + sp_r (2 + 2)
+
+# Owner lab minimum — CudaText-jcf history.json size_side and
+# default.cuda-session panels.side_size (2026-08-23). Locked: do not
+# derive from grid_cell_w() alone (formula ~174 understates usability
+# at the owner's chosen splitter width of 150 px).
+GRID_PANEL_MIN_W = 150
+
+
+def grid_panel_min_w_formula(cell_w=None, cols=GRID_COLS):
+    """Caption-based keypad width (reference / tests). Not the live floor."""
+    cw = cell_w if cell_w is not None else grid_cell_w()
+    inner = max(0, cols - 1) * (GRID_ROW_GUTTER + GRID_ROW_GUTTER)
+    return cols * cw + GRID_ROW_EDGE + GRID_ROW_EDGE + inner + GRID_SCROLL_PAD
+
+
+def grid_panel_min_w(cell_w=None, cols=GRID_COLS):
+    """Min STATghost side-tab width (px).
+
+    Default GRID_PANEL_MIN_W (150). Optional raise-only override:
+    cuda_statghost.ini [chrome] grid_panel_min_w=NNN.
+    """
+    w = GRID_PANEL_MIN_W
+    try:
+        try:
+            from . import prefs
+        except ImportError:
+            import prefs
+        ow = prefs.get_grid_panel_min_w()
+        if ow is not None and ow > w:
+            w = int(ow)
+    except Exception:
+        pass
+    return w
+
+
 # Side keypad captions: default below = names without widening the deck.
 # icon = glyphs only (hover hint).
 GRID_LABEL_DEFAULT = 'below'

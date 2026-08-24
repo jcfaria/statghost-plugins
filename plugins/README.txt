@@ -1,6 +1,6 @@
 plugins/ — one parent, one subfolder per host plugin
 ====================================================
-Updated: 2026-08-22
+Updated: 2026-08-24
 Repo: jcfaria/statghost-plugins
 
 Contract: this folder is the parent. Each client plugin is a
@@ -15,7 +15,7 @@ What is specific to one host lives **inside that host folder**
 
   plugins/cudatext/    first host — CODE + its w_todo
   plugins/vscode/      VS Code / Cursor — GO+CODE (v0.1; see README.txt)
-  plugins/notepadpp/   later — create only with GO
+  plugins/notepadpp/   third host — GO+CODE (C++ DLL; see README.txt)
 
 Do not put host plugins at the repo root.
 

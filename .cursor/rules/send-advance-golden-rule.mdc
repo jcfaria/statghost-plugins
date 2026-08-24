@@ -1,0 +1,55 @@
+---
+description: GOLDEN RULE — Send must advance past blank/# comment lines on every host
+alwaysApply: true
+---
+
+# Send advance — GOLDEN RULE (#1 cross-host behavior)
+
+**This is the single most important STATghost plugin characteristic.** The
+owner has repeated it for every host. Never ship Send that only transmits
+the current line and leaves the caret behind.
+
+## Contract (all hosts: CudaText, VS Code, Notepad++, future)
+
+After a **successful** Send that moves code to STATghost:
+
+1. Move the caret to **column 0** of the **next executable line**.
+2. **Skip** blank lines and **R `#` comment-only** lines (after `strip()`).
+3. At **EOF** with no further code line: **stay** (do not wrap).
+
+Reference implementation:
+
+- `plugins/cudatext/cuda_statghost/editor.py` — `advance_caret_after`,
+  `is_blank_or_hash_comment`
+- Wired from `plugins/cudatext/cuda_statghost/__init__.py` — `send_selection`,
+  `send_function`, `send_above`, `send_chunk` (not `send_below`)
+
+Mirror in VS Code: `plugins/vscode/src/editor.ts` — `advanceCaretAfter`,
+`isBlankOrHashComment`.
+
+## What gets sent (canonical Send / `send_selection`)
+
+1. **Non-empty selection** → send selection text; advance from **last line of
+   selection** (`selection_last_line` / `selectionLastLine`).
+2. **Empty selection** → enclosing function if caret is inside one, else
+   **complete R statement** at caret (`statement.py` / `statementAtCaret`);
+   advance from **end line of that span**.
+3. N++ v1 may still send **one line** when statement parse is not ported — but
+   **advance is mandatory** even in stubs.
+
+## R comment rule (v1, all hosts)
+
+A line is non-executable when `line.strip()` is empty **or** starts with `#`.
+No `##`, roxygen, or nested-language rules until shared extract exists.
+
+## Do
+
+- Call advance only after `sendEval` / `_send_code` **succeeds** (clipboard OK).
+- Port `advance_caret_after` before adding new Send variants on any host.
+- TF Send on files with `# comment` and blank lines between statements.
+
+## Don't
+
+- Ship Send that leaves the caret on the line just sent.
+- Treat advance as optional, host-specific, or “later”.
+- Invent different comment-skipping rules per IDE.

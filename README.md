@@ -25,7 +25,7 @@ not a REPL+Explorer bundle (D29).
 | `docs/` | Notes + optional sync into STATghost `_out/lexer` |
 
 The folder name on disk is the host; the menu caption is always
-**STATghost**. Further hosts (`plugins/notepadpp/`, …) land only with GO.
+**STATghost**. Hosts today: CudaText, VS Code / Cursor, Notepad++ (`plugins/notepadpp/`).
 
 ## CudaText (lab)
 

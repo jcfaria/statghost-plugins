@@ -1,0 +1,137 @@
+================================================================================
+SAP -- STATghost Notepad++ host (third editor)
+================================================================================
+Status: GO+CODE lab v1 (VP-NPP-1/2/3/6); VP-NPP-4/5/7/8 still open
+Updated: 2026-08-24
+Priority: third host after CudaText + VS Code; chrome parity via native DLL
+CODE branch: `work` (jcfaria/statghost-plugins)
+Origin: owner 2026-08-23 — evaluate N++ before implementation; maximum visual
+    flexibility; uniform three-host core afterward
+CPR: 02_cpr_notepadpp.txt (VP-NPP-*)
+Related: shared/CHROME.md; shared/NOTEPADPP.md; 03_sap_chrome.txt (surfaces);
+  plugins/vscode/ (second host reference)
+Decisions: D29 [P] (thin plugin; clipboard bridge; no Console/Plot/Explorer)
+Glossary: VP-NPP, DockingDlgInterface, CompactChrome, AnalyticPanel
+PT twin: ../../w_pt/br/01_sap_notepadpp.txt
+Canonical chrome: `shared/CHROME.md`
+
+**MOTTO:** Keep this project as simple and effective as possible!
+
+================================================================================
+0. NAME AND SCOPE
+================================================================================
+Define how **Notepad++** hosts STATghost with the same chrome contract as
+CudaText and VS Code: menu/toolbar nests, side analytic grid, Config checklist.
+
+This SAP is **N++-specific** policy (API limits, language choice, compromises).
+Surface semantics remain in `shared/CHROME.md` (host-agnostic).
+
+STATghost stays the **receiver**. The plugin never embeds Console, Plot, or
+Explorer — only triggers and clipboard tokens (D29).
+
+================================================================================
+1. GOAL
+================================================================================
+ - **Third host** validating the multi-editor contract before expanding to
+   other IDEs.
+ - **Maximum visual flexibility** on Win32: docked analytic keypad, toolbar
+   icons, theme-aware dialogs.
+ - **Same action registry** as `ACTION_KEYS` / `NESTS` / `grid_plan`.
+ - **Native performance** on classroom Windows laptops (no Python runtime dep
+   for chrome UI).
+
+================================================================================
+2. USER
+================================================================================
+Same **intensive** classroom profile as other hosts: student stays in the
+editor; compact menu/toolbar; side tab = full keypad; Config filters visibility.
+
+N++ users often expect Plugins-menu workflows — STATghost group name is
+**STATghost**, never "Notepad++ R".
+
+================================================================================
+3. MODEL (DECIDED — pending owner GO)
+================================================================================
+A) **Language / packaging**
+
+  | Choice              | Decision                          |
+  |---------------------|-----------------------------------|
+  | Production plugin   | **Unicode Win32 DLL** (x64) — **C++** recommended (official plugintemplate); **Object Pascal** (Delphi/Lazarus) **documented alternative** via `cdecl` exports + [rdipardo/delphiplugintemplate](https://github.com/rdipardo/delphiplugintemplate) |
+  | Distribution        | Plugin Admin manifest (future)    |
+  | Lab spike only      | PythonScript clipboard probe (opt.) |
+
+  **Object Pascal note (2026-08-23):** N++ manual lists Delphi/Lazarus; not an
+  official template (C++ only). Proven in the wild (DBGp, NppCalc). Same ABI:
+  `isUnicode`, `setInfo`, `getFuncsArray`, `beNotified`, `messageProc`.
+  Docking via `TNppDockingForm` / Win32 — visual parity with C++ if owner-draw
+  or VCL/LCL forms themed manually (`NPPM_GETDARKMODECOLORS`). Owner chooses
+  C++ vs Lazarus at VP-NPP-0 GO; contract stays host-agnostic.
+
+B) **Surfaces vs CHROME.md**
+
+  | Surface          | N++ mechanism                         | Parity |
+  |------------------|---------------------------------------|--------|
+  | Menu             | `getFuncsArray` + STATghost submenu   | 1:1    |
+  | Toolbar          | `NPPM_ADDTOOLBARICON_FORDARKMODE`     | **partial** — flat icons; nest children menu-only |
+  | Side panel       | `DockingDlgInterface` + owner-draw    | 1:1    |
+  | Config           | Modal or docked prefs dialog          | 1:1 semantics; Win32 UI not tree-native |
+  | Theme            | `NPPM_GETDARKMODECOLORS` bridge       | 1:1 intent; manual HWND theming |
+
+C) **Rejected paths**
+
+  - PythonScript as primary chrome host (dock theming unreliable).
+  - NppExec / external tools as UI substitute.
+  - ANSI plugin (rejected by N++ loader).
+
+D) **Contract import**
+
+  Until VP-CH-5 Python extract lands, mirror registry from `chrome_show.py`
+  via generated header/JSON — never hand-maintain a second order in C++.
+
+================================================================================
+4. IN / OUT
+================================================================================
+IN:
+  - `shared/CHROME.md` checklist (§7).
+  - `shared/res/` glyph stash (16/24/32).
+  - Clipboard `#. STATGHOST:<CMD>` protocol.
+  - CudaText + VS Code as behavioural reference (not pixel-copy).
+
+OUT:
+  - Per-host branding ("Notepad++ R").
+  - Embedded R console or plot pane.
+  - Nested toolbar dropdowns identical to Tinn Toolbar2000 (N++ has no API).
+  - Shipping PythonScript as runtime dependency for chrome.
+
+================================================================================
+5. RISKS
+================================================================================
+ - **Toolbar nest compromise:** students may use menu for Send▾ children unless
+   we add a custom rebar (out of scope v1).
+ - **Dark mode gaps:** groupbox/panel children may need recursive theming
+   (known N++ issue #13572).
+ - **Triple contract drift:** C++ vs Python vs TS — mitigate with shared
+   golden tests + codegen from `chrome_contract`.
+ - **DPI:** dialog-unit layouts; test 125%/150% early (VP-NPP-3 TF).
+ - **Premature CODE** before SAP/CPR GO — avoid repeating pre-chrome ad-hoc UI.
+
+================================================================================
+6. NEXT STEPS (before CODE)
+================================================================================
+ 1. Owner GO on VP-NPP-0 (this SAP + CPR recorded).
+ 2. Spike VP-NPP-1: empty DLL + dock panel shell + one menu command.
+ 3. VP-CH-5: prioritize Python `shared/chrome_contract` extract (helps all 3).
+ 4. After three hosts: intensive cross-host TF + uniformize checklist.
+
+================================================================================
+JOURNAL
+================================================================================
+  2026-08-23  Strategic study opened. Decision: Win32 DLL primary (C++
+              recommended; Object Pascal viable per manual + community
+              template); SAP/CPR before CODE; toolbar nests = documented
+              compromise; side grid owner-draw for full parity. Files:
+              shared/NOTEPADPP.md, w_todo 01/02 EN+PT.
+
+================================================================================
+END SAP notepadpp
+================================================================================

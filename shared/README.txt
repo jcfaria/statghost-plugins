@@ -1,6 +1,6 @@
 shared/ — universal STATghost plugin identity
 =============================================
-Updated: 2026-08-22
+Updated: 2026-08-24
 Repo: jcfaria/statghost-plugins  (was statghost-cudatext)
 
 The student sees **STATghost** in every client: one Plugins menu, one
@@ -42,7 +42,7 @@ inside that host.
 
   plugins/cudatext/    first host — CODE (VP-EB-1 + workbar)
   plugins/vscode/      VS Code / Cursor — GO+CODE (v0.1 scaffold)
-  plugins/notepadpp/   later — create only with GO
+  plugins/notepadpp/   third host — GO+CODE (C++ DLL; SAP/CPR in plugins/notepadpp/w_todo/)
   …                    same identity, different host API
 
 Tinn-R_D is a read-only peer, not a folder here.

@@ -1,0 +1,131 @@
+================================================================================
+SAP -- STATghost host Notepad++ (terceiro editor)
+================================================================================
+Status: GO+CODE lab v1 (VP-NPP-1/2/3/6); VP-NPP-4/5/7/8 ainda abertos
+Updated: 2026-08-24
+Prioridade: terceiro host após CudaText + VS Code; paridade chrome via DLL nativa
+CODE branch: `work` (jcfaria/statghost-plugins)
+Origem: owner 2026-08-23 — avaliar N++ antes de implementar; flexibilidade visual
+    máxima; core uniforme nos três editores depois
+CPR: 02_cpr_notepadpp.txt (VP-NPP-*)
+Relacionado: shared/CHROME.md; shared/NOTEPADPP.md; 03_sap_chrome.txt;
+  plugins/vscode/
+Decisões: D29 [P] (plugin fino; ponte clipboard; sem Console/Plot/Explorer)
+Glossário: VP-NPP, DockingDlgInterface, CompactChrome, AnalyticPanel
+Twin EN: ../../w_en/01_sap_notepadpp.txt
+Chrome canónico: `shared/CHROME.md`
+
+**MOTTO:** Manter o projeto o mais simples e eficaz possível!
+
+================================================================================
+0. NOME E ÂMBITO
+================================================================================
+Definir como o **Notepad++** hospeda STATghost com o mesmo contrato chrome dos
+outros hosts: nests menu/toolbar, grelha analítica lateral, checklist Config.
+
+Este SAP é política **específica N++** (limites API, linguagem, compromissos).
+A semântica das superfícies está em `shared/CHROME.md` (agnóstico de host).
+
+STATghost continua **recetor**. O plugin nunca embute Console, Plot ou Explorer
+— só dispara ações e tokens clipboard (D29).
+
+================================================================================
+1. OBJETIVO
+================================================================================
+ - **Terceiro host** que valida o contrato multi-editor antes de mais IDEs.
+ - **Flexibilidade visual máxima** em Win32: painel dock analítico, ícones
+   toolbar, diálogos com tema.
+ - **Mesmo registo de ações** que `ACTION_KEYS` / `NESTS` / `grid_plan`.
+ - **Performance nativa** em portáteis Windows de sala (sem dep Python para UI).
+
+================================================================================
+2. UTILIZADOR
+================================================================================
+Mesmo perfil **intensivo** de sala: o aluno fica no editor; menu/toolbar
+compactos; separador lateral = teclado completo; Config filtra visibilidade.
+
+Utilizadores N++ esperam fluxo Plugins — o grupo chama-se **STATghost**, nunca
+"Notepad++ R".
+
+================================================================================
+3. MODELO (DECIDIDO — pendente GO owner)
+================================================================================
+A) **Linguagem / empacotamento**
+
+  | Escolha             | Decisão                           |
+  |---------------------|-----------------------------------|
+  | Plugin produção     | **DLL Win32 Unicode** (x64) — **C++** recomendado (plugintemplate oficial); **Object Pascal** (Delphi/Lazarus) **alternativa documentada** via exports `cdecl` + [rdipardo/delphiplugintemplate](https://github.com/rdipardo/delphiplugintemplate) |
+  | Distribuição        | Manifest Plugin Admin (futuro)    |
+  | Spike laboratório   | PythonScript só ponte clipboard   |
+
+  **Nota Object Pascal (2026-08-23):** manual N++ lista Delphi/Lazarus; sem
+  template oficial (só C++). Comprovado (DBGp, NppCalc). Mesma ABI:
+  `isUnicode`, `setInfo`, `getFuncsArray`, `beNotified`, `messageProc`.
+  Docking via `TNppDockingForm` / Win32 — paridade visual com C++ se
+  owner-draw ou forms VCL/LCL com tema manual (`NPPM_GETDARKMODECOLORS`).
+  Owner escolhe C++ vs Lazarus no GO VP-NPP-0; contrato permanece agnóstico.
+
+B) **Superfícies vs CHROME.md**
+
+  | Superfície       | Mecanismo N++                         | Paridade |
+  |------------------|---------------------------------------|----------|
+  | Menu             | `getFuncsArray` + submenu STATghost   | 1:1      |
+  | Toolbar          | `NPPM_ADDTOOLBARICON_FORDARKMODE`     | **parcial** — ícones planos; filhos só no menu |
+  | Painel lateral   | `DockingDlgInterface` + owner-draw    | 1:1      |
+  | Config           | Modal ou painel dock de prefs         | 1:1 semântica; UI Win32 não é árvore nativa |
+  | Tema             | ponte `NPPM_GETDARKMODECOLORS`        | 1:1 intenção; theming HWND manual |
+
+C) **Caminhos rejeitados**
+
+  - PythonScript como host chrome principal (tema dock instável).
+  - NppExec / ferramentas externas como substituto de UI.
+  - Plugin ANSI (rejeitado pelo carregador N++).
+
+D) **Importação do contrato**
+
+  Até VP-CH-5 extrair Python para `shared/`, espelhar registo a partir de
+  `chrome_show.py` via header/JSON gerado — nunca manter ordem C++ à mão.
+
+================================================================================
+4. IN / OUT
+================================================================================
+IN:
+  - Checklist `shared/CHROME.md` (§7).
+  - Stash `shared/res/` (16/24/32).
+  - Protocolo clipboard `#. STATGHOST:<CMD>`.
+  - CudaText + VS Code como referência comportamental.
+
+OUT:
+  - Branding por host ("Notepad++ R").
+  - Consola R ou plot embutidos.
+  - Dropdowns toolbar aninhados iguais ao Tinn (N++ não tem API).
+  - PythonScript como dependência de runtime para chrome.
+
+================================================================================
+5. RISCOS
+================================================================================
+ - **Compromisso toolbar:** filhos Send▾ só no menu salvo rebar custom (fora v1).
+ - **Dark mode:** controlos contentor podem precisar theming recursivo (#13572).
+ - **Deriva tripla:** C++ vs Python vs TS — testes golden + codegen.
+ - **DPI:** unidades de diálogo; testar 125%/150% cedo (VP-NPP-3 TF).
+ - **CODE prematuro** sem GO SAP/CPR.
+
+================================================================================
+6. PRÓXIMOS PASSOS (antes de CODE)
+================================================================================
+ 1. GO owner em VP-NPP-0 (este SAP + CPR registados).
+ 2. Spike VP-NPP-1: DLL vazia + shell painel dock + um comando menu.
+ 3. VP-CH-5: priorizar extract `shared/chrome_contract` (ajuda os 3 hosts).
+ 4. Após três hosts: TF intensivo cross-host + uniformizar checklist.
+
+================================================================================
+JOURNAL
+================================================================================
+  2026-08-23  Estudo estratégico aberto. Decisão: DLL Win32 principal (C++
+              recomendado; Object Pascal viável per manual + template
+              comunidade); SAP/CPR antes de CODE; nests toolbar = compromisso
+              documentado; grelha lateral owner-draw para paridade plena.
+
+================================================================================
+END SAP notepadpp
+================================================================================

@@ -121,6 +121,10 @@ JOURNAL
               (longest caption +20%), host-specific icon–caption spacing;
               VS Code panel cells transparent + thin border; CudaText 65 +
               VS Code 31 unit tests green; restart_lab both hosts.
+  2026-08-24  AN consolidation — third host Notepad++ CODE (C++ DLL,
+              dock grid, clipboard EVAL); Print glyph from Explorer
+              16/24/32 masters (`shared/src/print`); CudaText side
+              keypad floor 150 px; send-advance golden rule.
 
 ================================================================================
 NEXT STEPS

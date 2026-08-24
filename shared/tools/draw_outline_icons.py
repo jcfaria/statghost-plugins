@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Draw outline-only ls, remove_objects, and print glyphs.
+"""Draw outline-only ls and remove_objects glyphs.
 
-Sources land in shared/png/ at 32px; build_res.py harvests and scales to
-16/24/32 for both plugin hosts.
+Print comes from shared/src/print/{16,24,32}.png (explorer masters),
+not this generator. Sources for ls/rm land in shared/png/ at 32px;
+build_res.py harvests and scales to 16/24/32 for both plugin hosts.
 
 Run from repo root:
   python shared/tools/draw_outline_icons.py
@@ -118,60 +119,9 @@ def draw_remove_objects(px: int) -> Image.Image:
     return im
 
 
-def draw_print(px: int) -> Image.Image:
-    """Glasses frame outline only — no lens fill."""
-    im = _blank(px)
-    draw = ImageDraw.Draw(im)
-    s = _stroke(px)
-    color = (255, 255, 255, 255)
-
-    # Lens frame geometry (mirrors legacy print.png proportions).
-    lens_w = px * 0.30
-    lens_h = px * 0.28
-    gap = px * 0.08
-    top = px * 0.36
-    left_x = px * 0.14
-    right_x = px - left_x - lens_w
-    bot = top + lens_h
-
-    def lens_frame(x0: float) -> list[tuple[float, float]]:
-        return [
-            (x0, top),
-            (x0 + lens_w, top),
-            (x0 + lens_w, bot),
-            (x0, bot),
-            (x0, top),
-        ]
-
-    for pts in (lens_frame(left_x), lens_frame(right_x)):
-        draw.line(pts, fill=color, width=s)
-
-    # Bridge
-    draw.line(
-        [(left_x + lens_w, top + lens_h * 0.42), (right_x, top + lens_h * 0.42)],
-        fill=color,
-        width=s,
-    )
-
-    # Temple arms from outer top corners (legacy print.png geometry).
-    arm_len = px * 0.24
-    for corner_x, outward in ((left_x, -1.0), (right_x + lens_w, 1.0)):
-        draw.line(
-            [
-                (corner_x, top),
-                (corner_x + outward * arm_len * 0.65, top - arm_len),
-            ],
-            fill=color,
-            width=s,
-        )
-
-    return im
-
-
 GLYPHS = {
     'ls.png': draw_ls,
     'remove_objects.png': draw_remove_objects,
-    'print.png': draw_print,
 }
 
 

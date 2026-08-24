@@ -390,3 +390,26 @@ Tests (this consolidation)
   - CudaText test_unit.py: 65/65 OK
   - VS Code test:unit: 31/31 OK; extension-host smoke OK
 
+================================================================================
+CONSOLIDATION — 2026-08-24 (AN before CP/CPMW)
+================================================================================
+
+Third host
+  - plugins/notepadpp/ C++ Unicode DLL (VP-NPP-1/2/3/6 CODE)
+  - Menu nests, dock analytic grid, clipboard EVAL, lab install/restart
+  - Toolbar flat icons; nest children menu-only (VP-NPP-4 compromise)
+
+Print glyph
+  - Explorer masters 16/24/32 → shared/src/print/ (exact sizes, no LANCZOS)
+  - build_res.py honors shared/src/<stem>/{16,24,32}.png
+  - draw_outline_icons.py no longer synthesizes print.png
+
+CudaText
+  - Side keypad floor GRID_PANEL_MIN_W = 150 (owner lab splitter)
+  - Optional chrome.grid_panel_min_w raise-only override
+  - Send-advance golden rule (.cursor/rules)
+
+Tests (this consolidation)
+  - CudaText test_unit.py: 67/67 OK
+  - VS Code test:unit: 31/31 OK; VSIX reinstall OK
+

@@ -1,0 +1,116 @@
+================================================================================
+CPR -- STATghost host Notepad++ (VP-NPP-1..8)
+================================================================================
+Status: GO+CODE lab v1 (VP-NPP-1/2/3/6 entregues)
+Updated: 2026-08-24
+Ordem: após scaffold VS Code GO; em paralelo VP-CH-5 extract shared
+Prefixo: **VP-NPP-*** (umbrella NOTEPAD++)
+SAP: 01_sap_notepadpp.txt
+Canónico: `shared/CHROME.md`; índice `shared/NOTEPADPP.md`
+Decisões: D29 (host fino)
+Twin EN: ../../w_en/02_cpr_notepadpp.txt
+Política: RECORD até GO por VP. Motto: simples e eficaz.
+
+================================================================================
+VP-NPP-0  Packs estratégicos (SAP/CPR)
+[ ] GO [ ] CODE [ ] TF
+================================================================================
+IN: Revisão owner de 01_sap + 02_cpr + shared/NOTEPADPP.md.
+OUT: Saltar para CODE sem compromissos documentados (toolbar, tema).
+BOK: Este CPR + checklist CHROME.md §7 mapeado para N++.
+Status: RECORD (2026-08-23).
+
+================================================================================
+VP-NPP-1  Shell plugin (DLL C++)
+[x] GO [x] CODE [x] TF
+================================================================================
+IN: plugintemplate / NppPluginTemplate; DLL Unicode x64; submenu STATghost.
+OUT: Caminho PythonScript em produção.
+BOK: Plugin carrega em N++ 8.5+ lab; um comando no-op.
+
+================================================================================
+VP-NPP-2  Shell painel analítico dock
+[x] GO [x] CODE [ ] TF
+================================================================================
+IN: `DockingDlgInterface` + `NPPM_DMMREGASDCKDLG`; dock direita por defeito.
+OUT: Diálogo flutuante sem persistência dock.
+BOK: Painel sobrevive restart; mostrar/ocultar via menu.
+
+================================================================================
+VP-NPP-3  ThemeBridge + grelha owner-draw
+[x] GO [x] CODE [ ] TF
+================================================================================
+IN: dark mode API; `grid_plan()`; bandas família + 3 colunas; `shared/res/`.
+OUT: Cinzentos fixos; colapso de nests no painel lateral.
+BOK: Paridade visual com cuda/vscode; testes unitários do plano.
+
+================================================================================
+VP-NPP-4  CompactChrome (menu + toolbar)
+[ ] GO [ ] CODE [ ] TF
+================================================================================
+IN: Nests menu; ícones toolbar com par dark/light; `parse_show` na barra.
+OUT: Toolbar aninhada Tinn sem doc de compromisso.
+BOK: Mesmas chaves visíveis que a grelha; filhos via menu.
+
+================================================================================
+VP-NPP-5  UI prefs Config
+[ ] GO [ ] CODE [ ] TF
+================================================================================
+IN: Checklist `chrome.show`; `grid_label`; `icons_fg`; persistência INI/JSON.
+OUT: Só edição manual de ficheiro config.
+
+================================================================================
+VP-NPP-6  Ponte clipboard + comandos
+[x] GO [x] CODE [ ] TF
+================================================================================
+IN: Tokens `#. STATGHOST:<CMD>`; send/source/inspect/clear; Scintilla.
+OUT: Motor R in-process (D29).
+
+================================================================================
+VP-NPP-7  Uniformização três hosts
+[ ] GO [ ] CODE [ ] TF
+================================================================================
+IN: Ficheiros golden cross-host; TF CHROME.md §7 nos três; VP-CH-5.
+OUT: Deriva de ACTION_KEYS por host.
+BOK: Testes partilhados Python consumidos por TS + C++.
+
+================================================================================
+VP-NPP-8  Empacotamento Plugin Admin
+[ ] GO [ ] CODE [ ] TF
+================================================================================
+IN: Pacote 64-bit; install_lab.ps1 análogo.
+OUT: Só cópia manual de DLL.
+
+================================================================================
+POLÍTICA / ORDEM
+================================================================================
+ - NPP-0 antes de qualquer CODE.
+ - NPP-1..2 antes da grelha (provar dock + load).
+ - NPP-7 = portão "testes intensivos" do owner nos três editores.
+
+================================================================================
+JOURNAL
+================================================================================
+  2026-08-23  CPR aberto a partir do estudo estratégico. Compromisso toolbar
+              explícito em VP-NPP-4. Três hosts = VP-NPP-7.
+  2026-08-23  VP-NPP-1 TF feito (owner): shell carrega; painel dock; probe status.
+  2026-08-23  CODE VP-NPP-2/3/6 (GO pós-TF): port contrato chrome; menu com nests
+              Send/Source/Inspect/Clear + 25 ações; clipboard `#. STATGHOST:<CMD>` +
+              EVAL; send/ls/clear/setwd/inspect ligados; stubs arm/host/config;
+              grelha analítica owner-draw (bandas família, 3 colunas, ícones
+              `shared/res`); dark mode NPPM_GETDARKMODECOLORS; toolbar plana
+              Send/Clear/Config/ls (filhos nest só no menu).
+  2026-08-24  Consolidação AN — árvore N++ em work/main; glifo Print dos
+              mestres Explorer; send-advance + extract de statement na DLL.
+
+================================================================================
+PRÓXIMOS PASSOS
+================================================================================
+1. TF owner VP-NPP-3 grelha + VP-NPP-6 clipboard com STATghost Armed.
+2. VP-NPP-4 polish menu/toolbar; VP-NPP-5 Config UI real.
+3. Avançar VP-CH-5 extract shared.
+4. Matriz TF: cuda gtk2+win32, vscode, npp win32 claro/escuro.
+
+================================================================================
+END CPR notepadpp
+================================================================================

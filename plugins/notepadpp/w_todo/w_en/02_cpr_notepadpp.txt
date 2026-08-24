@@ -1,0 +1,135 @@
+================================================================================
+CPR -- STATghost Notepad++ host (VP-NPP-1..8)
+================================================================================
+Status: GO+CODE lab v1 (VP-NPP-1/2/3/6 landed)
+Updated: 2026-08-24
+Order: after VS Code host scaffold GO; parallel VP-CH-5 shared extract
+Prefix: **VP-NPP-*** (umbrella NOTEPAD++)
+SAP: 01_sap_notepadpp.txt
+Canonical: `shared/CHROME.md`; index `shared/NOTEPADPP.md`
+Decisions: D29 (thin host)
+PT twin: ../../w_pt/br/02_cpr_notepadpp.txt
+Policy: RECORD until per-VP GO. Motto: simple and effective.
+
+================================================================================
+VP-NPP-0  Strategic packs (SAP/CPR)
+[ ] GO [ ] CODE [ ] TF
+================================================================================
+IN: Owner review of 01_sap + 02_cpr + shared/NOTEPADPP.md.
+OUT: Jump to CODE without documented compromises (toolbar nests, theme).
+BOK: This CPR + CHROME.md §7 checklist mapped to N++.
+Status: RECORD (2026-08-23).
+
+================================================================================
+VP-NPP-1  Plugin shell (C++ DLL)
+[x] GO [x] CODE [x] TF
+================================================================================
+IN: npp-plugins/plugintemplate or NppPluginTemplate; x64 Unicode DLL;
+  `setInfo`, `getFuncsArray`, `beNotified`; STATghost Plugins submenu.
+OUT: PythonScript production path.
+BOK: Plugin loads in N++ 8.5+ lab; one no-op command.
+Dependencies: VP-NPP-0 GO.
+
+================================================================================
+VP-NPP-2  Docking analytic panel shell
+[x] GO [x] CODE [ ] TF
+================================================================================
+IN: `DockingDlgInterface` + `NPPM_DMMREGASDCKDLG`; default dock right;
+  empty client HWND; tab title STATghost.
+OUT: Floating-only modeless dialog without dock persistence.
+BOK: Panel survives restart (config.xml); show/hide from menu.
+TF: dock left/right/bottom; float; light+dark chrome on container.
+
+================================================================================
+VP-NPP-3  ThemeBridge + owner-draw grid
+[x] GO [x] CODE [ ] TF
+================================================================================
+IN: `NPPM_GETDARKMODECOLORS`, `NPPN_DARKMODECHANGED`; `grid_plan()` port;
+  family bands + 3-col cells; `shared/res/` icons; `icons_fg` auto contrast.
+OUT: Hardcoded greys; nest collapse on side panel.
+BOK: Visual parity intent with CudaText/VS Code; unit tests for layout plan.
+TF: 100%/125% DPI; customized dark tone; screenshot diff vs cuda lab.
+
+================================================================================
+VP-NPP-4  CompactChrome (menu + toolbar)
+[ ] GO [ ] CODE [ ] TF
+================================================================================
+IN: Menu nests (Send▾ Source▾ Inspect▾ Clear▾); toolbar parent icons with
+  dark-mode pairs; `parse_show` / `collapse_keys` for bar.
+OUT: Claiming 1:1 Tinn nested toolbar without compromise doc.
+BOK: Same visible keys as side panel filter; children reachable via menu.
+TF: Menu order = grid order; toolbar flat icons documented in SAP.
+
+================================================================================
+VP-NPP-5  Config prefs UI
+[ ] GO [ ] CODE [ ] TF
+================================================================================
+IN: `chrome.show` checklist; `grid_label`; `icons_fg`; persist under
+  `NPPM_GETPLUGINSCONFIGDIR`; INI or JSON beside DLL name.
+OUT: Manual edit of config file only.
+BOK: Changing checklist updates menu, toolbar, and grid live.
+
+================================================================================
+VP-NPP-6  Clipboard bridge + commands
+[x] GO [x] CODE [ ] TF
+================================================================================
+IN: `#. STATGHOST:<CMD>` tokens; send/source/inspect/clear handlers;
+  Scintilla selection APIs; arm/host toggles.
+OUT: In-process R engine (D29).
+BOK: Protocol tests shared with cuda/vscode; statghost.exe integration TF.
+
+================================================================================
+VP-NPP-7  Three-host uniformization
+[ ] GO [ ] CODE [ ] TF
+================================================================================
+IN: Cross-host golden files; CHROME.md §7 TF on all three; VP-CH-5 extract.
+OUT: Per-host ACTION_KEYS drift.
+BOK: Single codegen or shared Python tests consumed by TS + C++.
+Dependencies: VP-NPP-1..6 substantially complete; cuda + vscode stable.
+
+================================================================================
+VP-NPP-8  Plugin Admin packaging
+[ ] GO [ ] CODE [ ] TF
+================================================================================
+IN: 64-bit package; dependencies documented; install_lab.ps1 analogue.
+OUT: Manual DLL copy as only path.
+BOK: Clean install on fresh N++ portable lab tree.
+
+================================================================================
+POLICY / ORDER
+================================================================================
+ - NPP-0 before any CODE.
+ - NPP-1..2 before grid (prove dock + load).
+ - NPP-3..5 parallel after shell — grid is highest visual risk.
+ - NPP-6 can start early as clipboard-only spike (optional PythonScript).
+ - NPP-7 is the owner's "intensive tests" gate across three editors.
+ - Chrome SAP (cudatext 03/04) owns surface *semantics*; this CPR owns N++
+   *delivery*.
+
+================================================================================
+JOURNAL
+================================================================================
+  2026-08-23  CPR opened from strategic study. Prefix VP-NPP-*. Toolbar nest
+              compromise explicit in VP-NPP-4. Three-host gate = VP-NPP-7.
+  2026-08-23  VP-NPP-1 TF done (owner): shell loads; dock panel; status probe baseline.
+  2026-08-23  VP-NPP-2/3/6 CODE (owner GO post-TF): chrome contract port
+              (`StatghostChrome.*`); menu nests Send/Source/Inspect/Clear + 25 actions;
+              clipboard `#. STATGHOST:<CMD>` + EVAL (protocol.py parity); send/ls/clear/
+              setwd/inspect family wired; arm/host stubs; owner-draw analytic grid
+              (family bands, 3 cols, icons from `shared/res` junction); dark mode via
+              NPPM_GETDARKMODECOLORS; toolbar flat icons Send/Clear/Config/ls
+              (nest children menu-only per VP-NPP-4 compromise).
+  2026-08-24  AN consolidation — land N++ tree on work/main; Print glyph
+              from Explorer masters; send-advance + statement extract in DLL.
+
+================================================================================
+NEXT STEPS
+================================================================================
+1. Owner TF VP-NPP-3 grid + VP-NPP-6 clipboard with STATghost Armed.
+2. VP-NPP-4 menu/toolbar nest polish; VP-NPP-5 Config UI stub → real prefs.
+3. Advance VP-CH-5 shared extract.
+4. Lab TF matrix: cuda gtk2 + win32, vscode, npp win32 light/dark.
+
+================================================================================
+END CPR notepadpp
+================================================================================

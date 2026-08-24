@@ -594,6 +594,27 @@ class Chrome:
             return chrome_show.grid_cell_w(), row_h
         return ph_w, row_h
 
+    def _side_panel_min_w(self):
+        cell_w, _row_h = self._grid_metrics()
+        return chrome_show.grid_panel_min_w(cell_w)
+
+    def _apply_side_min_width(self):
+        """Keep keypad cells wide enough — dialog w_min + scroll child."""
+        if not self._h_dlg:
+            return
+        min_w = self._side_panel_min_w()
+        try:
+            dlg_proc(self._h_dlg, DLG_PROP_SET, prop={'w_min': min_w})
+        except Exception:
+            pass
+        for name in ('grid_scroll', 'grid'):
+            try:
+                dlg_proc(self._h_dlg, DLG_CTL_PROP_SET, name=name, prop={
+                    'w_min': min_w,
+                })
+            except Exception:
+                pass
+
     def _grid_cell_props(self, row_name, col, cell_w, row_h):
         """Placeholder size until siblings exist and a_l/a_r can bind."""
         pal = self._palette()
@@ -802,12 +823,14 @@ class Chrome:
             return
         h = max(1, int(total_h))
         self._grid_content_h = h
+        min_w = self._side_panel_min_w()
         prop = {
             'align': ALIGN_NONE,
             'x': 0,
             'y': 0,
             'h': h,
             'h_min': h,
+            'w_min': min_w,
             'a_l': ('', '['),
             'a_r': ('', ']'),
             'sp_l': 2,
@@ -818,14 +841,14 @@ class Chrome:
         try:
             sc = dlg_proc(self._h_dlg, DLG_CTL_PROP_GET, name='grid_scroll') or {}
             sw = int(sc.get('w') or 0)
-            if sw > 0:
-                prop['w'] = max(1, sw)
+            prop['w'] = max(min_w, sw) if sw > 0 else min_w
         except Exception:
-            pass
+            prop['w'] = min_w
         try:
             dlg_proc(self._h_dlg, DLG_CTL_PROP_SET, name='grid', prop=prop)
         except Exception:
             pass
+        self._apply_side_min_width()
 
     def _fill_side_grid(self):
         """Family cards: title above keys (LCL alTop = last child on top).
@@ -1213,6 +1236,7 @@ class Chrome:
             'border': False,
             'color': pal['back'],
         })
+        side_min_w = self._side_panel_min_w()
         n = dlg_proc(h, DLG_CTL_ADD, 'panel')
         dlg_proc(h, DLG_CTL_PROP_SET, index=n, prop={
             'name': 'grid',
@@ -1220,9 +1244,10 @@ class Chrome:
             'align': ALIGN_NONE,
             'x': 0,
             'y': 0,
-            'w': 200,
+            'w': side_min_w,
             'h': 1,
             'h_min': 1,
+            'w_min': side_min_w,
             'a_l': ('', '['),
             'a_r': ('', ']'),
             'sp_l': 2,

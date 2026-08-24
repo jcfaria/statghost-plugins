@@ -152,6 +152,8 @@ Before calling a host “STATghost-ready”:
 - `shared/README.txt` — repo-wide identity and D29 boundary.
 - `plugins/cudatext/w_todo/w_en/03_sap_chrome.txt` — SAP (CudaText host).
 - `plugins/cudatext/w_todo/w_en/04_cpr_chrome.txt` — CPR / VP-CH-* tracking.
+- `shared/NOTEPADPP.md` — Notepad++ host (GO+CODE lab; VP-NPP-*).
+- `plugins/notepadpp/w_todo/` — N++ SAP/CPR packs (01/02, EN ↔ PT).
 - `.cursor/rules/sidebar-panel.mdc` — CudaText side-tab implementation rule.
 
 **Policy:** one STATghost, many hosts. Never embed Console / Plot / Explorer

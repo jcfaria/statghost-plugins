@@ -6,3 +6,12 @@ _loadtest/
 Thumbs.db
 __pycache__/
 *.py[cod]
+
+# Notepad++ lab (VP-NPP-1)
+plugins/notepadpp/.tools/
+plugins/notepadpp/.lab/
+plugins/notepadpp/statghost-npp/build/
+plugins/notepadpp/statghost-npp/build-mingw/
+plugins/notepadpp/menu_dump.txt
+plugins/notepadpp/TEST_BUTTONS_RESULTS.txt
+plugins/notepadpp/TF_RESULTS.txt

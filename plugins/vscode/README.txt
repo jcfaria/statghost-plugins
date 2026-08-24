@@ -1,6 +1,6 @@
 plugins/vscode/ — STATghost host (VS Code / Cursor)
 ====================================================
-Updated: 2026-08-22
+Updated: 2026-08-23
 Status: **GO+CODE** (v0.1.0 scaffold)
 Repo: jcfaria/statghost-plugins
 
@@ -44,6 +44,33 @@ PACKAGE / INSTALL
 
 Or from repo root after package:
   code --install-extension plugins/vscode/statghost-vscode-0.1.0.vsix
+
+PORTABLE VS CODE LAB (Win11 — Dropbox portable tree)
+----------------------------------------------------
+Path: C:\Users\jcfaria\Dropbox\&_port\VSCode
+  Code.exe          — editor binary
+  bin\code.cmd      — CLI (quote path: `&` in folder name)
+  data\extensions\  — portable extensions dir (auto when CLI runs from bin)
+  data\user-data\   — portable settings / state
+
+Build + package (from plugins/vscode):
+  powershell -File deploy_lab.ps1     # also installs Cursor lab
+  — or compile + npx @vscode/vsce package --allow-missing-repository only
+
+Reinstall into portable VS Code (PowerShell; LiteralPath for `&`):
+  $port = 'C:\Users\jcfaria\Dropbox\&_port\VSCode'
+  $vsix = 'C:\Users\jcfaria\Documents\Github\statghost-plugins\plugins\vscode\statghost-vscode-0.1.0.vsix'
+  & "$port\bin\code.cmd" --install-extension $vsix --force
+
+Verify:
+  & "$port\bin\code.cmd" --list-extensions | Select-String statghost
+  → jcfaria.statghost-vscode
+  → folder: data\extensions\jcfaria.statghost-vscode-0.1.0
+
+Open STATghost panel: launch portable Code.exe (or bin\code.cmd .), then click
+the STATghost icon in the activity bar (left) — view id statghost.analyticPanel.
+Palette: Ctrl+Shift+P → "STATghost: …" (e.g. Toggle Arm/Idle, Send Selection).
+No --extensions-dir needed when using portable bin\code.cmd (uses data\ tree).
 
 TESTS
 -----

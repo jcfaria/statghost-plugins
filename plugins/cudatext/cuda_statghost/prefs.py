@@ -22,6 +22,7 @@ _pipe_cache = None
 _icons_fg_cache = None
 _chrome_show_cache = None
 _grid_label_cache = None
+_grid_panel_min_w_cache = None
 
 
 def ini_path():
@@ -213,6 +214,37 @@ def set_grid_label(mode):
     key = cs.parse_grid_label(mode)
     ini_write(ini_path(), 'chrome', 'grid_label', key)
     _grid_label_cache = key
+
+
+def get_grid_panel_min_w():
+    """Optional side keypad width floor override (px); None = use default."""
+    global _grid_panel_min_w_cache
+    if _grid_panel_min_w_cache is not None:
+        return _grid_panel_min_w_cache
+    raw = ini_read(ini_path(), 'chrome', 'grid_panel_min_w', '')
+    if raw is None or str(raw).strip() == '':
+        return None
+    try:
+        v = int(str(raw).strip())
+    except ValueError:
+        return None
+    _grid_panel_min_w_cache = v if v > 0 else None
+    return _grid_panel_min_w_cache
+
+
+def set_grid_panel_min_w(px):
+    """Persist optional side keypad width floor (px); 0 clears override."""
+    global _grid_panel_min_w_cache
+    try:
+        v = int(px)
+    except (TypeError, ValueError):
+        v = 0
+    if v <= 0:
+        ini_write(ini_path(), 'chrome', 'grid_panel_min_w', '')
+        _grid_panel_min_w_cache = None
+        return
+    ini_write(ini_path(), 'chrome', 'grid_panel_min_w', str(v))
+    _grid_panel_min_w_cache = v
 
 
 def encoding_for_r(enc=None):

@@ -121,6 +121,10 @@ JOURNAL
               (caption mais longo +20%), espaçamento ícone–caption por host;
               painel VS Code transparente + borda fina; CudaText 65 + VS Code
               31 testes unitários OK; restart_lab nos dois hosts.
+  2026-08-24  Consolidação AN — terceiro host Notepad++ CODE (DLL C++,
+              grelha dock, EVAL clipboard); glifo Print dos mestres
+              Explorer 16/24/32 (`shared/src/print`); piso da grelha
+              CudaText 150 px; regra send-advance.
 
 ================================================================================
 PRÓXIMOS PASSOS
