@@ -18,6 +18,7 @@ from cudatext import BTN_SET_ENABLED
 from cudatext import BTN_SET_HINT
 from cudatext import BTN_SET_IMAGEINDEX
 from cudatext import BTN_SET_IMAGELIST
+from cudatext import BTN_UPDATE
 from cudatext import BTN_SET_ARROW
 from cudatext import BTN_SET_BOLD
 from cudatext import BTN_SET_KIND
@@ -281,6 +282,35 @@ def _blend_rgb(c1, c2, t):
     )
 
 
+def _apply_state_icon(h_btn, imglist, idx, visible=True):
+    """Swap a live glyph and make Qt6 actually paint it.
+
+    Why gtk2 works and stock Qt6 CudaText does not:
+    - TATButton.SetImageIndex used to Invalidate only (atbuttons.pas).
+      gtk2 honours that; Qt6 keeps the first QPixmap.
+    - toolbar_proc(TOOLBAR_UPDATE) is UpdateControls(AInvalidate=False)
+      in atflattoolbar.pas — layout only, no child invalidate. The
+      previous plugin 'Qt6 fix' was a no-op for paint.
+    - Newer ATFlatControls/CudaText also Repaint on SetImageIndex /
+      BTN_UPDATE, but that needs a rebuilt Qt6 binary. Rebind Images
+      (nil→list) and hide/show so the current lab Qt6 binary updates
+      without a CudaText rebuild.
+    """
+    if not h_btn:
+        return
+    try:
+        if imglist:
+            button_proc(h_btn, BTN_SET_IMAGELIST, 0)
+            button_proc(h_btn, BTN_SET_IMAGELIST, imglist)
+        button_proc(h_btn, BTN_SET_IMAGEINDEX, -1)
+        button_proc(h_btn, BTN_SET_IMAGEINDEX, idx)
+        button_proc(h_btn, BTN_UPDATE)
+        button_proc(h_btn, BTN_SET_VISIBLE, False)
+        button_proc(h_btn, BTN_SET_VISIBLE, bool(visible))
+    except Exception:
+        pass
+
+
 def _hdr_band_bg(back, face, border):
     """Slight stripe lift/dip vs TabBg — BG only, not caption colour."""
     r, g, b = _unpack_rgb(back)
@@ -374,6 +404,10 @@ class Chrome:
             self._armed = False
         if (not running) and self._was_running:
             self._armed = False
+        if running:
+            remote = host.read_bridge_armed()
+            if remote is not None:
+                self._armed = remote
         self._was_running = running
         self.refresh()
 
@@ -381,27 +415,43 @@ class Chrome:
         running = host.is_running()
         armed = bool(running and self._armed)
         paint = (running, armed)
-        if paint != self._arm_paint:
+        paint_changed = paint != self._arm_paint
+        show = set(prefs.get_chrome_show())
+        if paint_changed:
             self._arm_paint = paint
             if 'arm' in self._btns:
-                button_proc(
-                    self._btns['arm'], BTN_SET_IMAGEINDEX,
+                _apply_state_icon(
+                    self._btns['arm'], self._imglist,
                     self._icons.get('armed' if armed else 'idle', -1),
+                    visible='arm' in show,
                 )
                 button_proc(
                     self._btns['arm'], BTN_SET_HINT,
                     'Armed — click to Idle' if armed else 'Idle — click to Arm',
                 )
             if 'host' in self._btns:
-                button_proc(
-                    self._btns['host'], BTN_SET_IMAGEINDEX,
+                _apply_state_icon(
+                    self._btns['host'], self._imglist,
                     self._icons.get('kill' if running else 'power', -1),
+                    visible='host' in show,
                 )
                 button_proc(
                     self._btns['host'], BTN_SET_HINT,
                     'Quit STATghost' if running else 'Start STATghost',
                 )
-        self._refresh_side(running, armed)
+        self._refresh_side(running, armed, paint_changed=paint_changed)
+        if paint_changed:
+            try:
+                h_bar = app_proc(PROC_GET_MAIN_TOOLBAR, '')
+                if h_bar:
+                    toolbar_proc(h_bar, TOOLBAR_UPDATE)
+            except Exception:
+                pass
+            for h_sb in self._grid_bars:
+                try:
+                    toolbar_proc(h_sb, TOOLBAR_UPDATE)
+                except Exception:
+                    pass
 
     def install_toolbar(self):
         try:
@@ -689,22 +739,35 @@ class Chrome:
             pass
 
     def _sync_grid_caption(self, key, cap):
-        """High-contrast caption label (below mode) — same FG logic as icons."""
+        """High-contrast caption label (below mode) — same FG logic as icons.
+
+        Qt6 TLabel keeps the first caption pixmap; hide/show drops it.
+        """
         name = self._grid_cap_labels.get(key)
         if not name or not self._h_dlg:
             return
         pal = self._palette()
         try:
+            # Dummy cap first: Qt6 TLabel caches the first pixmap.
+            dlg_proc(self._h_dlg, DLG_CTL_PROP_SET, name=name, prop={
+                'cap': '',
+                'color': pal['back'],
+                'font_color': pal['caption'],
+                'vis': False,
+            })
             dlg_proc(self._h_dlg, DLG_CTL_PROP_SET, name=name, prop={
                 'cap': cap,
                 'color': pal['back'],
                 'font_color': pal['caption'],
+                'vis': True,
             })
         except Exception:
             pass
 
     def _polish_grid_keys(self):
         for key, hb in self._grid_btns.items():
+            if key in ('arm', 'host'):
+                continue
             try:
                 self._apply_grid_label(hb, key)
             except Exception:
@@ -1396,20 +1459,29 @@ class Chrome:
                 except Exception:
                     pass
 
-    def _refresh_side(self, running, armed):
+    def _refresh_side(self, running, armed, paint_changed=True):
         arm_cap = 'Armed' if armed else 'Idle'
         host_cap = 'Quit' if running else 'Start'
-        arm_idx = self._side_icon_idx.get('armed' if armed else 'arm', -1)
-        host_idx = self._side_icon_idx.get('kill' if running else 'host', -1)
+        arm_idx = self._side_icon_idx.get('armed' if armed else 'idle', -1)
+        host_idx = self._side_icon_idx.get('kill' if running else 'power', -1)
         mode = prefs.get_grid_label()
+        show = set(prefs.get_chrome_show())
         if 'arm' in self._grid_btns:
-            if mode == 'below':
+            if mode == 'below' and paint_changed:
                 self._sync_grid_caption('arm', arm_cap)
-            button_proc(self._grid_btns['arm'], BTN_SET_IMAGEINDEX, arm_idx)
+            if paint_changed:
+                _apply_state_icon(
+                    self._grid_btns['arm'], self._h_side_il, arm_idx,
+                    visible='arm' in show,
+                )
         if 'host' in self._grid_btns:
-            if mode == 'below':
+            if mode == 'below' and paint_changed:
                 self._sync_grid_caption('host', host_cap)
-            button_proc(self._grid_btns['host'], BTN_SET_IMAGEINDEX, host_idx)
+            if paint_changed:
+                _apply_state_icon(
+                    self._grid_btns['host'], self._h_side_il, host_idx,
+                    visible='host' in show,
+                )
         if not self._h_side_list:
             return
         self._outline_items = []

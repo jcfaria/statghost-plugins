@@ -15,6 +15,7 @@ import signal
 import subprocess
 import sys
 import time
+import json
 
 _WIN = sys.platform.startswith('win')
 
@@ -167,6 +168,38 @@ def _pidfile_path():
         return ''
     # Portable/lab: next to binary → data/statghost.pid (uapppaths).
     return os.path.join(os.path.dirname(exe), 'data', 'statghost.pid')
+
+
+def bridge_state_path():
+    """data/bridge_state.json beside statghost.pid (ubridgestate.pas)."""
+    pid_path = _pidfile_path()
+    if not pid_path:
+        return ''
+    return os.path.join(os.path.dirname(pid_path), 'bridge_state.json')
+
+
+def read_bridge_armed():
+    """Return Armed from STATghost poll file, or None if absent/stale."""
+    path = bridge_state_path()
+    if not path or not os.path.isfile(path):
+        return None
+    try:
+        with open(path, encoding='utf-8') as fh:
+            data = json.load(fh)
+    except (OSError, ValueError, TypeError):
+        return None
+    pid = data.get('pid')
+    if pid is not None:
+        try:
+            pid = int(pid)
+        except (TypeError, ValueError):
+            pid = 0
+        if pid and pid not in list_pids():
+            return None
+    armed = data.get('armed')
+    if armed is None:
+        return None
+    return bool(armed)
 
 
 def _clear_pidfile():

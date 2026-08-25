@@ -15,6 +15,7 @@ from cudatext import msg_status
 try:
     from . import chrome
     from . import chrome_show
+    from . import clip as sgclip
     from . import config as plugincfg
     from . import editor
     from . import host
@@ -34,6 +35,7 @@ try:
 except ImportError:
     import chrome
     import chrome_show
+    import clip as sgclip
     import config as plugincfg
     import editor
     import host
@@ -55,7 +57,8 @@ PLUGIN = 'STATghost'
 
 
 def _set_clip(text):
-    app_proc(PROC_SET_CLIP, text)
+    """Native clipboard + X11 + Wayland so gtk2/Qt6 hosts reach any SG."""
+    sgclip.push(text, native=lambda t: app_proc(PROC_SET_CLIP, t))
 
 
 def _line_count(text):

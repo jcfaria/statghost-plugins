@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import ast
+import json
 import os
 import re
 import subprocess
@@ -15,6 +16,7 @@ import unittest
 # Allow `python3 test_unit.py` from this folder or repo root.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+import clip  # noqa: E402
 import paths  # noqa: E402
 import protocol  # noqa: E402
 import statement  # noqa: E402
@@ -128,6 +130,38 @@ class TestProtocol(unittest.TestCase):
         self.assertNotEqual(protocol.next_arm_cmd(False), protocol.CMD_TOGGLE_ARM)
 
 
+class TestBridgeState(unittest.TestCase):
+    def test_read_bridge_armed_roundtrip(self):
+        with tempfile.TemporaryDirectory() as td:
+            path = os.path.join(td, 'bridge_state.json')
+            with open(path, 'w', encoding='utf-8') as fh:
+                json.dump({'armed': True, 'pid': 424242}, fh)
+            orig = host.bridge_state_path
+            orig_list = host.list_pids
+            host.bridge_state_path = lambda: path
+            host.list_pids = lambda: [424242]
+            try:
+                self.assertTrue(host.read_bridge_armed())
+            finally:
+                host.bridge_state_path = orig
+                host.list_pids = orig_list
+
+    def test_read_bridge_armed_stale_pid(self):
+        with tempfile.TemporaryDirectory() as td:
+            path = os.path.join(td, 'bridge_state.json')
+            with open(path, 'w', encoding='utf-8') as fh:
+                json.dump({'armed': True, 'pid': 1}, fh)
+            orig = host.bridge_state_path
+            orig_list = host.list_pids
+            host.bridge_state_path = lambda: path
+            host.list_pids = lambda: [99999]
+            try:
+                self.assertIsNone(host.read_bridge_armed())
+            finally:
+                host.bridge_state_path = orig
+                host.list_pids = orig_list
+
+
 class TestPaths(unittest.TestCase):
     def test_slot4_basename(self):
         p = paths.path_at(paths.IDX_FILE)
@@ -216,6 +250,35 @@ z = 1
         s, e = statement.enclosing_function(1, _get(rows), len(rows))
         self.assertEqual(s, 0)
         self.assertEqual(e, 2)
+
+
+class TestClipFanout(unittest.TestCase):
+    def test_push_calls_native_and_does_not_import_cudatext(self):
+        seen = []
+        clip.push('hello', native=seen.append)
+        self.assertEqual(seen, ['hello'])
+        self.assertNotIn('cudatext', sys.modules)
+
+    def test_plugin_wires_fanout(self):
+        here = os.path.dirname(os.path.abspath(__file__))
+        with open(os.path.join(here, '__init__.py'), encoding='utf-8') as fh:
+            init = fh.read()
+        with open(os.path.join(here, 'clip.py'), encoding='utf-8') as fh:
+            body = fh.read()
+        self.assertIn('sgclip.push', init)
+        self.assertIn('xclip', body)
+        self.assertIn('wl-copy', body)
+        self.assertIn('_try_x11', body)
+        self.assertIn('_try_wayland', body)
+
+    def test_chrome_busts_qt6_caption_cache(self):
+        here = os.path.dirname(os.path.abspath(__file__))
+        with open(os.path.join(here, 'chrome.py'), encoding='utf-8') as fh:
+            txt = fh.read()
+        cap_fn = txt.split('def _sync_grid_caption', 1)[1].split(
+            'def _polish_grid_keys', 1,
+        )[0]
+        self.assertIn("'cap': ''", cap_fn)
 
 
 class TestChromeShow(unittest.TestCase):
@@ -535,6 +598,21 @@ class TestChromeShow(unittest.TestCase):
         self.assertIn('TabBg', text)
         self.assertIn('theme_rgb', text)
         self.assertIn('self._apply_side_theme()', text)
+
+    def test_qt6_state_icon_nudge(self):
+        """Qt6 must rebind Images + hide/show; TOOLBAR_UPDATE is layout only."""
+        here = os.path.dirname(os.path.abspath(__file__))
+        with open(os.path.join(here, 'chrome.py'), encoding='utf-8') as fh:
+            text = fh.read()
+        self.assertIn('def _apply_state_icon', text)
+        self.assertIn('BTN_SET_IMAGELIST, 0', text)
+        self.assertIn('BTN_SET_VISIBLE, False', text)
+        self.assertIn('BTN_UPDATE', text)
+        refresh_fn = text.split('def refresh(self):', 1)[1].split(
+            'def install_toolbar', 1,
+        )[0]
+        self.assertIn('_apply_state_icon(', refresh_fn)
+        self.assertIn("self._refresh_side(running, armed, paint_changed=paint_changed)", refresh_fn)
 
     def test_menu_path_nests(self):
         self.assertEqual(chrome_show.menu_path('cfg'), 'Config')
