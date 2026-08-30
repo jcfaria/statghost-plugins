@@ -52,6 +52,7 @@ from cudatext import PROC_SHOW_SIDEPANEL_SET
 from cudatext import PROC_SIDEPANEL_ACTIVATE
 from cudatext import PROC_SIDEPANEL_ADD_DIALOG
 from cudatext import PROC_THEME_UI_DICT_GET
+from cudatext import PROP_LINE_TOP
 from cudatext import TIMER_START
 from cudatext import TOOLBAR_ADD_ITEM
 from cudatext import TOOLBAR_DELETE_BUTTON
@@ -1277,12 +1278,16 @@ class Chrome:
             'color': pal['back'],
         })
         n = dlg_proc(h, DLG_CTL_ADD, 'listbox')
+        # LCL listbox: OnClick is wired; OnDblClick too. Both → outline_jump
+        # (cmd= must accept id_dlg/id_ctl/data — see Command.outline_jump).
+        # on_change needs act=True and also fires on items refresh — skip it.
         dlg_proc(h, DLG_CTL_PROP_SET, index=n, prop={
             'name': 'status',
             'p': 'status_band',
             'align': ALIGN_CLIENT,
             'color': pal['back'],
             'font_color': pal['muted'],
+            'on_click': 'module=cuda_statghost;cmd=outline_jump;',
             'on_click_dbl': 'module=cuda_statghost;cmd=outline_jump;',
         })
         self._h_side_list = dlg_proc(h, DLG_CTL_HANDLE, index=n)
@@ -1334,8 +1339,8 @@ class Chrome:
         self._side_ready = True
 
     def jump_outline_selection(self):
-        """Double-click on side list: jump to outline line (skip status hdr)."""
-        if not self._h_side_list or not self._outline_items:
+        """Click/dblclick on side list: jump to outline line (skip status hdr)."""
+        if not self._h_dlg or not self._outline_items:
             return
         prop = dlg_proc(self._h_dlg, DLG_CTL_PROP_GET, name='status') or {}
         idx = prop.get('val')
@@ -1345,12 +1350,20 @@ class Chrome:
             idx = int(idx)
         except (TypeError, ValueError):
             return
+        if idx < 0:
+            return
         oi = idx - int(self._outline_hdr)
         if oi < 0 or oi >= len(self._outline_items):
             return
         line = int(self._outline_items[oi]['line'])
         from cudatext import ed
         ed.set_caret(0, line)
+        try:
+            # Keep the target near the top so the jump is obvious in class.
+            top = max(0, line - 3)
+            ed.set_prop(PROP_LINE_TOP, top)
+        except Exception:
+            pass
         msg_status(PLUGIN + ': outline → L' + str(line + 1))
 
     def _palette(self):

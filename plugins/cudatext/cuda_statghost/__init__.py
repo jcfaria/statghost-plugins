@@ -383,8 +383,12 @@ class Command:
         ed.set_caret(0, line)
         msg_status(PLUGIN + ': outline → L' + str(line + 1))
 
-    def outline_jump(self):
-        """Side-tab double-click → jump (chrome keeps the index map)."""
+    def outline_jump(self, id_dlg=0, id_ctl=0, data='', info=''):
+        """Side-tab outline list click/dblclick → jump.
+
+        dlg_proc passes (id_dlg, id_ctl, data); signature must accept them
+        or CudaText logs TypeError and the jump never runs.
+        """
         chrome.get(self).jump_outline_selection()
 
     def clear_console(self):
