@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>STATghost-plugins — News</title>
+<link rel="stylesheet" href="news.css">
+</head>
+<body>
+<h1>STATghost-plugins — News</h1>
+<p class="lede">Peer plugins and canonical lexers for <a href="https://github.com/jcfaria/statghost">STATghost</a>. One repo, one menu identity (<strong>STATghost</strong>), multiple editor hosts under <code>plugins/</code>. App-side bridge, Explorer, Console, and packaged releases are recorded in the <a href="https://github.com/jcfaria/statghost/blob/work/news/News.md">sibling News</a>.</p>
+<hr>
+<h2>Unreleased — 2026-08-30 - Faria, J. C.</h2>
+<ul>
+<li><strong>Outline (side tab).</strong> Jump accepts <code>dlg_proc</code> args; click and double-click wired so the side-tab Outline opens the correct target.</li>
+<li><strong>Bridge state poll.</strong> Plugin reads STATghost <code>bridge_state.json</code> and rebinds Qt6 glyphs so Arm/Idle and Start/Quit paint correctly after host theme or bridge changes.</li>
+<li><strong>Notepad++ host.</strong> Consolidated under <code>plugins/notepadpp/</code> with Explorer Print glyphs aligned to shared chrome.</li>
+<li><strong>Multi-host chrome v0.1.</strong> VS Code / Cursor extension (<code>plugins/vscode/</code>), shared icon pipeline (<code>shared/tools/build_res.py</code>), Notepad++ stub, one nest tree across menu · toolbar · side tab.</li>
+</ul>
+<h2>2026-08-30 — News mirror</h2>
+<ul>
+<li><strong>News mirror (this repo).</strong> <code>news/News.md</code> + <code>news.html</code> + <code>news.css</code> (charcoal / ghost-slate theme, same tokens as STATghost and statghost-ext). Regenerate with <code>./news/sync_news.sh</code>. <code>docs/News.md</code> pointer; README link. Peer history backfilled from git log + sibling News (plugin bullets only).</li>
+</ul>
+<h2>2026-08-17 — Config tree, Send focus, functional TF</h2>
+<ul>
+<li><strong>Config (CudaText):</strong> tree pages <strong>Send</strong> / <strong>Chrome</strong> / <strong>Host</strong> replace one stacked dialog. Send hint and Host paths use memo wrap instead of clipping (“Sniper” label, long exe paths).</li>
+<li><strong>EVAL_KEEP:</strong> after Send, editor keeps focus (no steal back to STATghost).</li>
+<li><strong>Functional TF:</strong> wait for ARM to settle before the first live EVAL.</li>
+</ul>
+<h2>2026-08-16 — Multi-host layout + WORKBAR</h2>
+<ul>
+<li><strong>Rename <code>statghost-cudatext</code> → <code>statghost-plugins</code>.</strong> Host plugins under <code>plugins/</code>; shared glyphs in <code>shared/png/</code>. Build/pack looks for <code>statghost-plugins/lexer</code> first, then the old folder name.</li>
+<li><strong>Sibling STATghost discovery:</strong> walk up to the sibling clone instead of hardcoding folder depth.</li>
+<li><strong>WORKBAR (Tinn-R_D TBRMain analogue):</strong> nested Send/Source/Inspect/Clear on toolbar; Tinn R-control glyphs; live Send on Linux (not only Win32); Win10 <code>sibling_dir</code> reunified with Linux workbar Send.</li>
+<li><strong>Production TF:</strong> CudaText Send into a running STATghost (clipboard contract); hardened tab-title wait; no Python eval / orphan <code>with(BOD)</code> in R path.</li>
+</ul>
+<h2>2026-08-15 — Public companion, Send advance, collapse</h2>
+<ul>
+<li><strong>Repo public</strong> with install docs and MPL-2.0 footer (Author/Maintainer aligned with STATghost README).</li>
+<li><strong>Send advance (golden rule):</strong> after successful Send, caret moves to column 0 of the next executable line; skip blank and <code>#</code> comment-only lines; stay at EOF (no wrap). Reference: <code>editor.py</code> / <code>editor.ts</code>.</li>
+<li><strong>Send payload:</strong> non-empty selection → selection; empty → enclosing function or complete R statement at caret (<code>statement.py</code>).</li>
+<li><strong>Collapse:</strong> bracket-aware wrap for Console one-liners; <code>{ }</code> blocks keep newlines (no glue inside <code>with(BOD, { … })</code>). Python <code>try</code>/<code>def</code>/<code>&quot;&quot;&quot;</code> units locked with sample tests.</li>
+<li><strong>Live functional tests</strong> for clipboard send contract.</li>
+</ul>
+<h2>2026-08-14 — VP-EB-1b chrome (CudaText)</h2>
+<p>Mirrors <a href="https://github.com/jcfaria/statghost/blob/work/news/News.md">STATghost v0.4.26 News</a> (plugin bullets); highlights for this repo:</p>
+<ul>
+<li><strong>Bridge (VP-EB-1 / EB-1b):</strong> native toolbar + side tab (Config · Arm/Idle · Start/Quit · Send · Source · Clear). Side-tab order = toolbar order.</li>
+<li><strong>Source via <code>.paths[4]</code>:</strong> writes <code>TEMP/STATghost/file.R</code>, sends <code>source(.paths[4], …)</code> — no absolute editor path (STATghostcom 0.0.12).</li>
+<li><strong>Config:</strong> chrome visibility checkboxes (+ All/None); Insert pipe <code>|&gt;</code> / <code>%&gt;%</code>; Outline; Send above/below; Source selection; enclosing function; didactic hotkeys; icon FG contrast (<code>auto</code> / light / dark / theme).</li>
+<li><strong>Start/Quit:</strong> recovers windowless D50 zombies; Quit force-stops after 3s.</li>
+<li><strong>Unit tests:</strong> collapse, protocol, <code>.paths</code>, workbar nests.</li>
+</ul>
+<h2>2026-08-13 — VP-EB-1 bootstrap</h2>
+<ul>
+<li><strong>First CudaText plugin:</strong> clipboard Send to Armed STATghost (<code>#. STATGHOST:EVAL</code>).</li>
+<li><strong>Absolute Arm/Idle tokens</strong> (never guessed toggle from chrome).</li>
+<li><strong>Complete R statement</strong> at caret, including unbraced <code>if</code> bodies.</li>
+<li><strong>Drop default Ctrl+E</strong> from plugin hotkeys (Send uses install.inf chords).</li>
+</ul>
+<hr>
+<h2>Hosts (current)</h2>
+<p>| Host | Path | Notes | |------|------|-------| | CudaText | <code>plugins/cudatext/cuda_statghost/</code> | Primary lab; gtk2 + Qt6; WORKBAR SAP | | VS Code / Cursor | <code>plugins/vscode/</code> | Extension v0.1; panel, submenus, bridge | | Notepad++ | <code>plugins/notepadpp/</code> | v1 stub; Send advance mandatory |</p>
+<p>Shared contract: <code>shared/</code> (menu, workbar, protocol, glyphs). Lexers: <code>lexer-dev/</code> → promoted <code>lexer/</code>.</p>
+<hr>
+<h2>Glossary</h2>
+<ul>
+<li><strong>AN</strong> — advance notice (changelog intent before CP).</li>
+<li><strong>CP / CPMW</strong> — commit+push (MW = multi-worktree / companion repos).</li>
+<li><strong>D29</strong> — SAP/CPR: STATghost owns REPL+Explorer; plugins are peers only.</li>
+<li><strong>EVAL_KEEP</strong> — keep editor focused after Send (Config / bridge).</li>
+<li><strong>VP-EB-1</strong> — editor bridge pack 1 (CudaText control deck).</li>
+<li><strong>WORKBAR</strong> — nested toolbar analogue to Tinn-R_D TBRMain (<code>w_todo</code> VP-WB-*).</li>
+</ul>
+<hr>
+<h2>See also</h2>
+<ul>
+<li><a href="https://github.com/jcfaria/statghost/blob/work/news/News.md">STATghost News</a> — app releases, Explorer, Console, bridge_state, packaged zips.</li>
+<li><a href="https://github.com/jcfaria/statghost-ext/blob/main/News.md">statghost-ext News</a> — STATghostcom / <code>.paths</code> detail.</li>
+<li>Browser mirror: open <code>news/news.html</code> locally (stylesheet <code>news.css</code>).</li>
+</ul>
+<footer>Generated from <code>News.md</code> — run
+<code>news/sync_news.sh</code> after editing the Markdown.</footer>
+</body>
+</html>

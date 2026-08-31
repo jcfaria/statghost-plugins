@@ -12,7 +12,7 @@ Layout
   gray/16px|24px|32px   mid gray      #8A8A8A
   graphite/…            graphite      #3A3A3A
 
-Rebuild after changing a source PNG (shared/png, Tinn stash, …):
+Rebuild after changing a source PNG (shared/png, shared/src/<stem>/{16,24,32}.png, Tinn stash, …):
 
   python shared/tools/build_res.py
 

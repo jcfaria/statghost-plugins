@@ -6,7 +6,9 @@ peer plugins and canonical lexers. One identity for the student
 Each editor is a host folder, not a separate product.
 
 **Repo:** https://github.com/jcfaria/statghost-plugins  
-Formerly `statghost-cudatext` (GitHub keeps a redirect).
+Formerly `statghost-cudatext` (GitHub keeps a redirect).  
+**News:** [`news/News.md`](news/News.md) · browser [`news/news.html`](news/news.html)
+(regenerate: `./news/sync_news.sh`).
 
 STATghost remains the sniper matchbox. This repo owns **peer** artefacts —
 not a REPL+Explorer bundle (D29).

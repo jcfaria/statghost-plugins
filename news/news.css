@@ -1,0 +1,167 @@
+/* STATghost-plugins — peer News (browser mirror)
+   Ghost / charcoal offline stylesheet. Same design tokens as sibling
+   statghost/news/news.css and statghost-ext/news/news.css (keep pairs
+   harmonized). */
+
+:root {
+  color-scheme: dark;
+  --bg: #151719;
+  --panel: #1b1e21;
+  --ink: #e6e8ea;
+  --muted: #97a0a8;
+  --dim: #6f7880;
+  --title: #f1f3f4;
+  --slate: #7598a9;
+  --slate-soft: rgba(117, 152, 169, 0.26);
+  --rule: #2a3036;
+  --code-bg: #212529;
+  --code-edge: #343a40;
+  --link: #8aadc0;
+  --link-hot: #aec9d6;
+  --measure: 44rem;
+  --gutter: 1.3rem;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--bg);
+}
+
+body {
+  font-family: "Segoe UI", "Liberation Sans", "Noto Sans", system-ui, sans-serif;
+  font-size: 1.02rem;
+  line-height: 1.68;
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: 2rem var(--gutter) 3.25rem;
+  color: var(--ink);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1 {
+  font-size: clamp(1.4rem, 2.3vw, 1.8rem);
+  font-weight: 650;
+  line-height: 1.28;
+  letter-spacing: -0.01em;
+  color: var(--title);
+  margin: 0 0 1rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--slate-soft);
+}
+
+h2 {
+  font-size: 1.16rem;
+  font-weight: 650;
+  line-height: 1.35;
+  color: var(--title);
+  margin: 2rem 0 0.8rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+h3 {
+  font-size: 1.04rem;
+  font-weight: 600;
+  color: var(--title);
+  margin: 1.4rem 0 0.55rem;
+}
+
+p {
+  margin: 0.8rem 0;
+}
+
+.lede {
+  color: var(--muted);
+  font-size: 0.94rem;
+  line-height: 1.58;
+}
+
+a {
+  color: var(--link);
+  text-decoration: underline;
+  text-decoration-color: var(--slate-soft);
+  text-underline-offset: 0.18em;
+}
+
+a:hover {
+  color: var(--link-hot);
+  text-decoration-color: var(--link);
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--slate-soft);
+  margin: 1.5rem 0 0.35rem;
+}
+
+code {
+  font-family: "Cascadia Code", "Consolas", "Liberation Mono", "Noto Sans Mono",
+    ui-monospace, monospace;
+  font-size: 0.88em;
+  color: #c6d2da;
+  background: var(--code-bg);
+  border: 1px solid var(--code-edge);
+  padding: 0.1em 0.38em;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+strong {
+  font-weight: 650;
+  color: #eef0f1;
+}
+
+em {
+  font-style: italic;
+  color: #d3d7da;
+}
+
+ul,
+ol {
+  margin: 0.65rem 0 0.95rem;
+  padding-left: 1.4rem;
+}
+
+li {
+  margin: 0.38rem 0;
+  padding-left: 0.12rem;
+}
+
+li::marker {
+  color: var(--slate);
+}
+
+footer {
+  margin-top: 2.5rem;
+  padding-top: 0.95rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--dim);
+}
+
+footer code {
+  font-size: 0.92em;
+}
+
+@media (max-width: 36rem) {
+  body {
+    padding: 1.3rem 1rem 2.4rem;
+    font-size: 1rem;
+  }
+
+  h1 {
+    font-size: 1.32rem;
+  }
+
+  code {
+    white-space: normal;
+    word-break: break-word;
+  }
+}
