@@ -10,16 +10,22 @@
 <h1>STATghost-plugins — News</h1>
 <p class="lede">Peer plugins and canonical lexers for <a href="https://github.com/jcfaria/statghost">STATghost</a>. One repo, one menu identity (<strong>STATghost</strong>), multiple editor hosts under <code>plugins/</code>. App-side bridge, Explorer, Console, and packaged releases are recorded in the <a href="https://github.com/jcfaria/statghost/blob/work/news/News.md">sibling News</a>.</p>
 <hr>
-<h2>Unreleased — 2026-08-30 - Faria, J. C.</h2>
+<h2>Unreleased — 2026-08-31 - Faria, J. C.</h2>
+<p>_(nothing yet)_</p>
+<h2>2026-08-31 — Icon res rebuild</h2>
+<ul>
+<li><strong>Regenerated host <code>res/</code> trees</strong> from <code>shared/tools/build_res.py</code> after lab rebuild (CudaText, VS Code media, Notepad++ when present, plus <code>shared/res/</code>). All variant folders (default, gray, graphite, white) at 16/24/32 px — keeps multi-host chrome glyphs in sync with <code>shared/png</code> and <code>shared/src/&lt;stem&gt;/</code>.</li>
+</ul>
+<h2>2026-08-30 — News mirror</h2>
+<ul>
+<li><strong>News mirror (this repo).</strong> <code>news/News.md</code> + <code>news.html</code> + <code>news.css</code> (charcoal / ghost-slate theme, same tokens as STATghost and statghost-ext). Regenerate with <code>./news/sync_news.sh</code>. <code>docs/News.md</code> pointer; README link. Peer history backfilled from git log + sibling News (plugin bullets only).</li>
+</ul>
+<h2>2026-08-23 — Multi-host chrome v0.1</h2>
 <ul>
 <li><strong>Outline (side tab).</strong> Jump accepts <code>dlg_proc</code> args; click and double-click wired so the side-tab Outline opens the correct target.</li>
 <li><strong>Bridge state poll.</strong> Plugin reads STATghost <code>bridge_state.json</code> and rebinds Qt6 glyphs so Arm/Idle and Start/Quit paint correctly after host theme or bridge changes.</li>
 <li><strong>Notepad++ host.</strong> Consolidated under <code>plugins/notepadpp/</code> with Explorer Print glyphs aligned to shared chrome.</li>
 <li><strong>Multi-host chrome v0.1.</strong> VS Code / Cursor extension (<code>plugins/vscode/</code>), shared icon pipeline (<code>shared/tools/build_res.py</code>), Notepad++ stub, one nest tree across menu · toolbar · side tab.</li>
-</ul>
-<h2>2026-08-30 — News mirror</h2>
-<ul>
-<li><strong>News mirror (this repo).</strong> <code>news/News.md</code> + <code>news.html</code> + <code>news.css</code> (charcoal / ghost-slate theme, same tokens as STATghost and statghost-ext). Regenerate with <code>./news/sync_news.sh</code>. <code>docs/News.md</code> pointer; README link. Peer history backfilled from git log + sibling News (plugin bullets only).</li>
 </ul>
 <h2>2026-08-17 — Config tree, Send focus, functional TF</h2>
 <ul>

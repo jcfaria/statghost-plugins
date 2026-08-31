@@ -8,7 +8,26 @@ bridge, Explorer, Console, and packaged releases are recorded in the
 
 ---
 
-## Unreleased — 2026-08-30 - Faria, J. C.
+## Unreleased — 2026-08-31 - Faria, J. C.
+
+_(nothing yet)_
+
+## 2026-08-31 — Icon res rebuild
+
+- **Regenerated host `res/` trees** from `shared/tools/build_res.py` after
+  lab rebuild (CudaText, VS Code media, Notepad++ when present, plus
+  `shared/res/`). All variant folders (default, gray, graphite, white) at
+  16/24/32 px — keeps multi-host chrome glyphs in sync with `shared/png`
+  and `shared/src/<stem>/`.
+
+## 2026-08-30 — News mirror
+
+- **News mirror (this repo).** `news/News.md` + `news.html` + `news.css`
+  (charcoal / ghost-slate theme, same tokens as STATghost and statghost-ext).
+  Regenerate with `./news/sync_news.sh`. `docs/News.md` pointer; README link.
+  Peer history backfilled from git log + sibling News (plugin bullets only).
+
+## 2026-08-23 — Multi-host chrome v0.1
 
 - **Outline (side tab).** Jump accepts `dlg_proc` args; click and double-click
   wired so the side-tab Outline opens the correct target.
@@ -20,13 +39,6 @@ bridge, Explorer, Console, and packaged releases are recorded in the
 - **Multi-host chrome v0.1.** VS Code / Cursor extension (`plugins/vscode/`),
   shared icon pipeline (`shared/tools/build_res.py`), Notepad++ stub, one
   nest tree across menu · toolbar · side tab.
-
-## 2026-08-30 — News mirror
-
-- **News mirror (this repo).** `news/News.md` + `news.html` + `news.css`
-  (charcoal / ghost-slate theme, same tokens as STATghost and statghost-ext).
-  Regenerate with `./news/sync_news.sh`. `docs/News.md` pointer; README link.
-  Peer history backfilled from git log + sibling News (plugin bullets only).
 
 ## 2026-08-17 — Config tree, Send focus, functional TF
 
